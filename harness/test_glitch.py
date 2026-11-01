@@ -14,8 +14,10 @@ SR = 44100
 def saw_bass(seconds=4.0, f=55.0):
     """A plucky 16th-note saw line, like a resampled bass round."""
     t = np.arange(int(SR * seconds)) / SR
-    saw = 2 * ((t * f) % 1.0) - 1
+    # band-limited saw (harmonic sum), as a real synth oscillator is; a naive saw really does click every cycle
+    saw = sum(np.sin(2 * np.pi * f * k * t) / k for k in range(1, 40)) * (2 / np.pi)
     env = np.exp(-((t % 0.124) / 0.04))           # 16ths at 121 BPM, short decay
+    env *= np.minimum(1.0, (t % 0.124) / 0.003)   # 3 ms attack, as a synth envelope has
     x = 0.5 * saw * env
     return np.stack([x, x], 1)
 
@@ -45,7 +47,7 @@ class Glitch(unittest.TestCase):
 
     def test_click_found(self):
         x = hats()
-        x[2 * SR] += 0.7
+        x[int((16 * 0.124 + 0.1) * SR)] += 0.7   # between two hats, where a click is audible
         self.assertIn('click', [p['kind'] for p in check_signal(x, SR)['problems']])
 
     def test_wrong_length(self):
