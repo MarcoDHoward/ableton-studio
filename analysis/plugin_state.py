@@ -3,7 +3,7 @@
 Adds to each PluginDevice in set.json: preset, pack, type/subtype, tags,
 description, and engine parameters (name -> 0..1 value).
 
-usage: python plugin_state.py <set.xml> <set.json>
+usage: python plugin_state.py <set.als or set.xml> <set.json>
 """
 import binascii, json, re, sys
 import xml.etree.ElementTree as ET
@@ -58,7 +58,11 @@ def decode(blob):
     return out
 
 def main(xml_path, json_path):
-    root = ET.parse(xml_path).getroot()
+    if xml_path.lower().endswith('.als'):  # Live sets are gzipped XML
+        import gzip
+        root = ET.fromstring(gzip.open(xml_path).read())
+    else:
+        root = ET.parse(xml_path).getroot()
     states = {}
     for t in root.find('LiveSet/Tracks'):
         name = t.find('Name/EffectiveName').get('Value')

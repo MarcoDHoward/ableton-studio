@@ -1,7 +1,8 @@
 """Compact data for the findings page: per-stem log spectrograms (uint8, base64) plus
 summaries from thumbprints.json, the arrangement timeline and the acid automation.
 
-usage: python build_report_data.py <stems_dir> report_data.json
+usage: python build_report_data.py <stems_dir> report_data.json [stem prefix, default '<Set> Stems']
+Run it in the folder that holds thumbprints.json, midi_analysis.json, audio_analysis.json and set.json.
 """
 import base64, json, os, sys
 import numpy as np
@@ -29,7 +30,10 @@ def spectrogram(path):
     q = np.clip((D + 72) / 72 * 255, 0, 255).astype(np.uint8)   # 72 dB range
     return base64.b64encode(q.tobytes()).decode(), round(len(mid) / sr, 2)
 
-def main(stems, dst):
+def main(stems, dst, prefix=None):
+    if prefix is None:  # Live names stems "<export name> <track>.wav"; the full mix is "<export name>.wav"
+        wavs = sorted(f[:-4] for f in os.listdir(stems) if f.endswith('.wav'))
+        prefix = min(wavs, key=len)
     tp = json.load(open('thumbprints.json', encoding='utf-8'))
     mi = json.load(open('midi_analysis.json', encoding='utf-8'))
     au = json.load(open('audio_analysis.json', encoding='utf-8'))
@@ -75,11 +79,11 @@ def main(stems, dst):
     specs = {}
     for fn in sorted(os.listdir(stems)):
         if not fn.endswith('.wav'): continue
-        key = fn[len('ProgAcidAI Stems'):-4].strip() or 'Full mix'
+        key = fn[len(prefix):-4].strip() or 'Full mix'
         if au.get(fn[:-4], {}).get('silent'): continue
         print('spectrogram', key, flush=True)
         specs[key] = dict(zip(('data', 'seconds'), spectrogram(os.path.join(stems, fn))))
-    mix = au['ProgAcidAI Stems']
+    mix = au[prefix]
     # acid automation (time in bars)
     acid = next(t for t in st['tracks'] if t['name'] == 'Acid Bass')
     lanes = {}
@@ -100,4 +104,4 @@ def main(stems, dst):
     print('bytes', os.path.getsize(dst))
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
