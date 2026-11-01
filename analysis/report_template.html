@@ -1,0 +1,426 @@
+<title>ProgAcidAI Sound Analysis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single analyzer-readout column; each section is one instrument panel reading the same 160-bar song. */
+:root {
+  --bg: #f4f5f8; --surface: #ffffff; --ink: #14161c; --ink-2: #474c59; --muted: #747a88; --rule: #dde0e8;
+  --accent: #c44d1c;
+  --g-drums: #2a78d6; --g-synths: #eb6834; --g-acid: #1baf7a; --g-returns: #8a8f9c;
+  --b0: #0d366b; --b1: #184f95; --b2: #256abf; --b3: #3987e5; --b4: #6da7ec; --b5: #9ec5f4;
+  --spec-0: #f4f5f8; --spec-1: #cde2fb; --spec-2: #86b6ef; --spec-3: #3987e5; --spec-4: #1c5cab; --spec-5: #0d366b;
+  --zone: rgba(42,120,214,0.09);
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111217; --surface: #191a21; --ink: #eceef3; --ink-2: #b6bac6; --muted: #868b98; --rule: #2b2d37;
+  --accent: #f0814a;
+  --g-drums: #3987e5; --g-synths: #d95926; --g-acid: #199e70; --g-returns: #80858f;
+  --b0: #184f95; --b1: #256abf; --b2: #3987e5; --b3: #6da7ec; --b4: #9ec5f4; --b5: #cde2fb;
+  --spec-0: #111217; --spec-1: #104281; --spec-2: #1c5cab; --spec-3: #3987e5; --spec-4: #86b6ef; --spec-5: #e3efff;
+  --zone: rgba(57,135,229,0.13); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111217; --surface: #191a21; --ink: #eceef3; --ink-2: #b6bac6; --muted: #868b98; --rule: #2b2d37;
+  --accent: #f0814a;
+  --g-drums: #3987e5; --g-synths: #d95926; --g-acid: #199e70; --g-returns: #80858f;
+  --b0: #184f95; --b1: #256abf; --b2: #3987e5; --b3: #6da7ec; --b4: #9ec5f4; --b5: #cde2fb;
+  --spec-0: #111217; --spec-1: #104281; --spec-2: #1c5cab; --spec-3: #3987e5; --spec-4: #86b6ef; --spec-5: #e3efff;
+  --zone: rgba(57,135,229,0.13); color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 56px; }
+h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(34px, 7vw, 64px); font-weight: 700; line-height: 1.02; }
+h2 { font-size: clamp(19px, 2.6vw, 24px); font-weight: 500; }
+h3 { font-size: 15px; margin: 0; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 500 12px/1 var(--f-mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.ink2 { color: var(--ink-2); }
+section { display: grid; gap: 18px; min-width: 0; }
+.head { display: grid; gap: 6px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; min-width: 0; }
+.scroll { overflow-x: auto; }
+
+header { display: grid; gap: 18px; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 22px; font: 500 14px/1.4 var(--f-mono); color: var(--ink-2); }
+.readout b { color: var(--ink); font-weight: 500; }
+.lede { font-size: 17px; color: var(--ink-2); max-width: 64ch; }
+
+.sig { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.sig .panel { display: grid; gap: 6px; align-content: start; }
+.sig .panel h3 { font-size: 15.5px; }
+.sig .panel p { color: var(--ink-2); font-size: 14.5px; }
+.sig .tag { font: 500 11px/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 13px/1.3 var(--f-body); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+svg text { fill: var(--ink-2); font: 11px var(--f-mono); }
+svg .lab { fill: var(--ink); font: 12px var(--f-body); }
+svg .axis { stroke: var(--rule); }
+svg .grid { stroke: var(--rule); stroke-dasharray: 2 4; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 500 12.5px/1 var(--f-body); color: var(--ink-2); background: var(--surface); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 11px; cursor: pointer; }
+.chips button:hover { border-color: var(--muted); color: var(--ink); }
+.chips button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chips button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.specbox { display: grid; gap: 10px; }
+.spec { position: relative; }
+.spec canvas { width: 100%; height: 260px; display: block; border-radius: 6px; image-rendering: auto; }
+.specmeta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 18px; align-items: baseline; }
+.specmeta .desc { color: var(--ink-2); font-size: 14px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 500 11.5px/1.2 var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .sub { display: block; color: var(--muted); font-size: 12.5px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+.fam { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.fam .panel { display: grid; gap: 4px; }
+.fam .score { font: 500 13px var(--f-mono); color: var(--accent); }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 72ch; color: var(--ink-2); }
+code { font: 13px var(--f-mono); background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--bg); font: 12.5px/1.45 var(--f-body); padding: 7px 10px; border-radius: 6px; max-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+#tip b { font-weight: 600; }
+#tip .mono { font-size: 12px; }
+@media (prefers-reduced-motion: no-preference) { .chips button { transition: background .15s, color .15s, border-color .15s; } }
+@media (max-width: 560px) { .spec canvas { height: 200px; } .panel { padding: 14px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Set analysis · Ableton Live 12.4 · ReggaeBuilder Project</div>
+    <h1>ProgAcidAI</h1>
+    <div class="readout" id="readout"></div>
+    <p class="lede">A read of everything in the set: 2,957 MIDI notes, 64 automation lanes, six Analog Lab presets and every device chain, plus a short-time Fourier analysis of all 24 tracks rendered as stems. The result is a sound thumbprint for each track that new sounds can be built from and matched against.</p>
+  </header>
+
+  <section>
+    <div class="head"><div class="eyebrow">Your production signature</div><h2>Six habits the data keeps showing</h2></div>
+    <div class="sig">
+      <div class="panel"><span class="tag">Filtering</span><h3>You carve every synth from below</h3><p>Nearly every synth filter is a high-pass: Acid Bass at 56 and 148 Hz, High Keys at 540 and 723 Hz, Moody Melody band-pass then 879 Hz, Lead at 1 kHz, Shimmer at 1.15 and 2.36 kHz. Brightness changes come from moving those cutoffs, not from closing low-passes.</p></div>
+      <div class="panel"><span class="tag">Low end</span><h3>Only the kick and toms own the bass</h3><p>Kick sits at 60 Hz with 99% of its energy below 250 Hz; Toms at 110 Hz. Acid Bass has just 6% of its energy in the 60–250 Hz band. Its home is 250 Hz–2 kHz.</p></div>
+      <div class="panel"><span class="tag">Acid</span><h3>The squelch is drawn by hand</h3><p>761 cutoff points and 420 resonance points ride a resonant high-pass on the Tranceport preset across bars 1–143. The MIDI under it is whole-bar held notes; the preset's own sequencer makes the 16ths.</p></div>
+      <div class="panel"><span class="tag">Harmony</span><h3>Pedal tones, motion from the patch</h3><p>A minor (0.88 from the mix audio). A holds 63% of all note time. Melodic tracks hold notes for 4 to 32 beats and let Berlin Sequence, 7 Osc Chord Rave Seq and Live's Arpeggiator generate the line. Intervals move in 4ths, 5ths and octaves.</p></div>
+      <div class="panel"><span class="tag">Groove</span><h3>Straight kick, tribal everything else</h3><p>Four-on-the-floor kick at a flat velocity 99; toms on the off-beat 8ths with velocity 61 ± 37; claps on 2 and 4 with a ghost 16th before 4; a Brazilian afoxé shaker; flat 16th hats; cowbell 8ths at 127.</p></div>
+      <div class="panel"><span class="tag">Space</span><h3>Wide synths, mono drums, dark top</h3><p>Lead's left/right correlation is −0.07 and the melodies sit between 0.09 and 0.51, while kick, claps and hats are at 0.99 or higher. High-mid plus air is under 3% of the whole mix.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Arrangement · 160 bars</div><h2>Who plays when</h2>
+      <p class="ink2">Each row is a track, each column a bar. Sections are named from where the set of playing tracks changes; the two triangles are your own locators.</p></div>
+    <div class="legend" id="tl-legend"></div>
+    <div class="panel scroll"><svg id="timeline" role="img" aria-label="Arrangement map of 22 tracks across 160 bars"></svg></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Frequency territory</div><h2>Where each sound lives, and where you cut it</h2>
+      <p class="ink2">Bars span the 10th to 90th percentile of each track's spectral centre (its brightness) while it plays; the dot is the median. Ticks mark the high-pass filters on the track. The shaded zone is the kick and tom territory.</p></div>
+    <div class="legend" id="ft-legend"></div>
+    <div class="panel scroll"><svg id="territory" role="img" aria-label="Spectral range per track on a logarithmic frequency axis"></svg></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Energy by band</div><h2>How each track's energy splits across the spectrum</h2>
+      <p class="ink2">Share of each track's long-term energy per band, from the STFT averaged over the parts where it plays. The full mix is at the top.</p></div>
+    <div class="legend" id="be-legend"></div>
+    <div class="panel scroll"><svg id="bands" role="img" aria-label="Stacked energy share per frequency band per track"></svg></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Acid Bass · second Auto Filter (high-pass)</div><h2>The hand-drawn acid performance</h2>
+      <p class="ink2">Your automation as written in the set, plotted against the song bar by bar. Cutoff uses a log scale; resonance is shown on its own chart below.</p></div>
+    <div class="panel scroll"><svg id="acid-cut" role="img" aria-label="Acid Bass high-pass cutoff automation over 160 bars"></svg></div>
+    <div class="panel scroll"><svg id="acid-res" role="img" aria-label="Acid Bass filter resonance automation over 160 bars"></svg></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Spectrograms · short-time Fourier transform</div><h2>Every stem, frequency over time</h2>
+      <p class="ink2">Hann window 4096 samples at 44.1 kHz, 72 log-spaced bands from 30 Hz to 16 kHz, 72 dB range, darker for louder. Pick a track.</p></div>
+    <div class="chips" id="spec-chips" role="group" aria-label="Choose a stem"></div>
+    <div class="panel specbox">
+      <div class="specmeta"><h3 id="spec-title">Full mix</h3><span class="mono muted" id="spec-pulse"></span><span class="desc" id="spec-desc"></span></div>
+      <div class="spec"><canvas id="spec-canvas" width="720" height="288" aria-label="Spectrogram"></canvas></div>
+      <svg id="spec-axis" height="22" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Track reference</div><h2>The thumbprint, track by track</h2>
+      <p class="ink2">Attack is the median 10%→peak rise of each hit; decay is the time to fall 20 dB. Width is side energy relative to mid (0 dB is very wide, below −25 dB is mono).</p></div>
+    <div class="panel scroll"><table id="ref"></table></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Sound families</div><h2>What sounds like what</h2>
+      <p class="ink2">Each thumbprint carries a 48-number vector: 31 third-octave levels, 12 timbre coefficients (MFCCs), brightness, noisiness, attack, decay and width. Cosine similarity on that vector groups your tracks like this.</p></div>
+    <div class="fam" id="families"></div>
+  </section>
+
+  <section>
+    <div class="head"><div class="eyebrow">Method and limits</div><h2>How this was measured</h2></div>
+    <ul class="plain">
+      <li>MIDI, automation, devices and presets were read from <code>ProgAcidAI.als</code> without changing it. Analog Lab preset names, packs, authors, tags and descriptions were decoded from the plugin state saved in the set.</li>
+      <li>Stems were rendered by Live (All Individual Tracks, bars 1–160, 44.1 kHz, 16-bit) without return or main effects, so the mix figures describe the sound before your Glue and Color Limiter. The mix peaks at 0.0 dBFS at that point.</li>
+      <li>Per-track pitch is reported as the strongest pitch classes, because overtones bias key detection on a single instrument. The key comes from the full mix, and the MIDI agrees.</li>
+      <li>Two tracks have no clips in the arrangement and rendered silent: Decorations and 22-Analog Lab V (Blue Universe).</li>
+      <li>Files are in <code>F:\Ableton\ReggaeBuilder Project\ProgAcidAI Analysis\</code>: <code>thumbprints.json</code>, <code>ANALYSIS.md</code>, the raw extractions, spectrogram images and the rerunnable pipeline. Stems are in <code>ProgAcidAI Stems\</code>.</li>
+    </ul>
+  </section>
+</div>
+<div id="tip" hidden></div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tip = document.getElementById('tip');
+  function showTip(e, html) { tip.innerHTML = html; tip.hidden = false; moveTip(e); }
+  function moveTip(e) {
+    const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+  const fmtHz = v => v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, '') + ' kHz' : Math.round(v) + ' Hz';
+  const S = D.song;
+  const GROUP_VAR = { Drums: '--g-drums', Hats: '--g-drums', Percs: '--g-drums', Synths: '--g-synths', Ungrouped: '--g-acid', Returns: '--g-returns' };
+  const GROUP_LABEL = { '--g-drums': 'Drums group', '--g-synths': 'Synths group', '--g-acid': 'Acid Bass (ungrouped)', '--g-returns': 'Returns' };
+  const trackColor = t => GROUP_VAR[t.group] || '--g-returns';
+  const byName = Object.fromEntries(D.tracks.map(t => [t.name, t]));
+  const SECTIONS = [[1, 8, 'Intro'], [9, 20, 'Build'], [21, 48, 'Groove'], [49, 56, 'Peak'], [57, 60, 'Air'], [61, 84, 'Groove 2'], [85, 116, 'Breakdown'], [117, 136, 'Final'], [137, 160, 'Outro']];
+
+  // readout
+  const mins = Math.floor(S.minutes), secs = Math.round((S.minutes - mins) * 60);
+  document.getElementById('readout').innerHTML = [
+    ['Tempo', S.tempo + ' BPM'], ['Key', 'A minor'], ['Length', S.bars + ' bars · ' + mins + ':' + String(secs).padStart(2, '0')],
+    ['Tracks', '24 · 22 playing'], ['Mix centre', fmtHz(S.mix_centroid.median)], ['Pulse', '16ths']
+  ].map(([k, v]) => '<span>' + k + ' <b>' + v + '</b></span>').join('');
+
+  function legend(el, items) {
+    document.getElementById(el).innerHTML = items.map(([v, l]) => '<span><i style="background:var(' + v + ')"></i>' + esc(l) + '</span>').join('');
+  }
+  function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function txt(parent, x, y, s, attrs = {}) { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; }
+
+  // ---------- timeline ----------
+  function drawTimeline() {
+    const svg = document.getElementById('timeline'); svg.innerHTML = '';
+    const order = D.tracks.filter(t => D.timeline[t.name]).map(t => t.name);
+    const L = 150, cw = 5.4, rh = 15, top = 40, W = L + cw * S.bars + 8, H = top + rh * order.length + 26;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', W); svg.style.maxWidth = 'none';
+    SECTIONS.forEach(([a, b, name], i) => {
+      el('rect', { x: L + (a - 1) * cw, y: top - 4, width: (b - a + 1) * cw, height: rh * order.length + 8, style: 'fill:' + (i % 2 ? 'var(--zone)' : 'transparent') }, svg);
+      txt(svg, L + (a - 1) * cw + 2, 14, name, { class: 'lab', style: 'font-size:11px' });
+    });
+    [1, 21, 53, 85, 117, 160].forEach(b => txt(svg, L + (b - 1) * cw, H - 6, b));
+    S.locators.forEach(l => { const x = L + (l.time / 4) * cw; el('path', { d: `M${x - 4} 20 L${x + 4} 20 L${x} 27 Z`, style: 'fill:var(--accent)' }, svg); });
+    order.forEach((n, r) => {
+      const y = top + r * rh, t = byName[n], col = 'var(' + trackColor(t) + ')';
+      txt(svg, L - 8, y + 10.5, n.length > 20 ? n.slice(0, 19) + '…' : n, { class: 'lab', 'text-anchor': 'end', style: 'font-size:11.5px' });
+      const a = D.timeline[n]; let s = -1;
+      for (let b = 0; b <= a.length; b++) {
+        if (a[b] && s < 0) s = b;
+        if ((!a[b] || b === a.length) && s >= 0) { el('rect', { x: L + s * cw + 0.5, y: y + 2, width: (b - s) * cw - 1, height: rh - 4, rx: 2, style: 'fill:' + col }, svg); s = -1; }
+      }
+    });
+    svg.onmousemove = e => {
+      const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse());
+      const r = Math.floor((q.y - top) / rh), b = Math.floor((q.x - L) / cw);
+      if (r < 0 || r >= order.length || b < 0 || b >= S.bars) return hideTip();
+      const n = order[r], on = D.timeline[n][b], sec = SECTIONS.find(([a, z]) => b + 1 >= a && b + 1 <= z);
+      showTip(e, '<b>' + esc(n) + '</b><br><span class="mono">bar ' + (b + 1) + '</span> · ' + sec[2] + '<br>' + (on ? 'playing' : 'silent') + ' · active in ' + byName[n].active_bars + ' of 160 bars');
+    };
+    svg.onmouseleave = hideTip;
+  }
+
+  // ---------- frequency territory ----------
+  const lx = (v, L, W) => L + (Math.log10(v) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20)) * W;
+  function drawTerritory() {
+    const svg = document.getElementById('territory'); svg.innerHTML = '';
+    const rows = D.tracks.filter(t => !t.silent && t.kind !== 'ReturnTrack').sort((a, b) => a.centroid.median - b.centroid.median);
+    const L = 150, PW = 760, rh = 22, top = 16, W = L + PW + 20, H = top + rh * rows.length + 30;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', W); svg.style.maxWidth = '100%'; svg.style.minWidth = '640px';
+    el('rect', { x: lx(55, L, PW), y: top - 6, width: lx(250, L, PW) - lx(55, L, PW), height: rh * rows.length + 8, style: 'fill:var(--zone)' }, svg);
+    txt(svg, lx(55, L, PW) + 3, top + rh * rows.length + 1, 'kick + toms', { style: 'font-size:10px' });
+    [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].forEach(v => {
+      const x = lx(v, L, PW); el('line', { x1: x, x2: x, y1: top - 6, y2: top + rh * rows.length + 4, class: 'grid' }, svg);
+      txt(svg, x, H - 6, fmtHz(v).replace(' ', ''), { 'text-anchor': 'middle' });
+    });
+    rows.forEach((t, i) => {
+      const y = top + i * rh + rh / 2, c = 'var(' + trackColor(t) + ')';
+      txt(svg, L - 8, y + 4, t.name.length > 20 ? t.name.slice(0, 19) + '…' : t.name, { class: 'lab', 'text-anchor': 'end', style: 'font-size:11.5px' });
+      const x1 = lx(Math.max(20, t.centroid.p10), L, PW), x2 = lx(Math.max(21, t.centroid.p90), L, PW);
+      el('rect', { x: x1, y: y - 4, width: Math.max(3, x2 - x1), height: 8, rx: 4, style: 'fill:' + c + ';opacity:.85' }, svg);
+      el('circle', { cx: lx(Math.max(20, t.centroid.median), L, PW), cy: y, r: 5, style: 'fill:' + c + ';stroke:var(--surface);stroke-width:2' }, svg);
+      (t.filters || []).filter(f => f.type === 'highpass' && f.cutoff_hz < 9000 && f.cutoff_hz >= 20).forEach(f => {
+        const x = lx(f.cutoff_hz, L, PW); el('line', { x1: x, x2: x, y1: y - 8, y2: y + 8, style: 'stroke:var(--accent);stroke-width:2' }, svg);
+      });
+      const hit = el('rect', { x: L, y: y - rh / 2, width: PW, height: rh, style: 'fill:transparent' }, svg);
+      const hp = (t.filters || []).filter(f => f.type === 'highpass').map(f => fmtHz(f.cutoff_hz)).join(', ');
+      hit.addEventListener('mousemove', e => showTip(e, '<b>' + esc(t.name) + '</b><br><span class="mono">median ' + fmtHz(t.centroid.median) + '<br>range ' + fmtHz(t.centroid.p10) + ' – ' + fmtHz(t.centroid.p90) + (hp ? '<br>high-pass ' + hp : '') + '</span>'));
+      hit.addEventListener('mouseleave', hideTip);
+    });
+  }
+
+  // ---------- band energy ----------
+  const BANDS = [['sub', 'Sub 20–60 Hz', '--b0'], ['bass', 'Bass 60–250', '--b1'], ['low_mid', 'Low-mid 250–500', '--b2'], ['mid', 'Mid 500–2k', '--b3'], ['high_mid', 'High-mid 2–6k', '--b4'], ['air', 'Air 6–20k', '--b5']];
+  function drawBands() {
+    const svg = document.getElementById('bands'); svg.innerHTML = '';
+    const mix = { name: 'Full mix', bands: S.mix_bands, centroid: S.mix_centroid };
+    const rows = [mix].concat(D.tracks.filter(t => !t.silent && t.kind !== 'ReturnTrack').sort((a, b) => a.centroid.median - b.centroid.median));
+    const L = 150, PW = 760, rh = 20, top = 6, W = L + PW + 10, H = top + rh * rows.length + 26;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', W); svg.style.maxWidth = '100%'; svg.style.minWidth = '640px';
+    [0, 25, 50, 75, 100].forEach(p => { const x = L + PW * p / 100; el('line', { x1: x, x2: x, y1: top, y2: top + rh * rows.length, class: 'grid' }, svg); txt(svg, x, H - 6, p + '%', { 'text-anchor': 'middle' }); });
+    rows.forEach((t, i) => {
+      const y = top + i * rh;
+      txt(svg, L - 8, y + 13.5, t.name.length > 20 ? t.name.slice(0, 19) + '…' : t.name, { class: 'lab', 'text-anchor': 'end', style: 'font-size:11.5px' + (i === 0 ? ';font-weight:600' : '') });
+      let x = L; const tot = BANDS.reduce((s, b) => s + t.bands[b[0]], 0) || 1;
+      BANDS.forEach(([k, lab, v]) => {
+        const w = PW * t.bands[k] / tot; if (w < 0.4) { x += w; return; }
+        const r = el('rect', { x: x, y: y + 3, width: Math.max(0, w - 2), height: rh - 6, rx: 2, style: 'fill:var(' + v + ')' }, svg);
+        r.addEventListener('mousemove', e => showTip(e, '<b>' + esc(t.name) + '</b><br>' + lab + ' <span class="mono">' + t.bands[k].toFixed(1) + '%</span>'));
+        r.addEventListener('mouseleave', hideTip); x += w;
+      });
+    });
+  }
+
+  // ---------- acid automation ----------
+  function lineChart(id, pts, opts) {
+    const svg = document.getElementById(id); svg.innerHTML = '';
+    const L = 56, PW = 880, top = 14, PH = opts.h, W = L + PW + 16, H = top + PH + 30;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('width', W); svg.style.maxWidth = '100%'; svg.style.minWidth = '640px';
+    const X = b => L + (b - 1) / (S.bars) * PW, Y = opts.y(PH, top);
+    SECTIONS.forEach(([a, b], i) => i % 2 && el('rect', { x: X(a), y: top, width: X(b + 1) - X(a), height: PH, style: 'fill:var(--zone)' }, svg));
+    opts.ticks.forEach(v => { const y = Y(v); el('line', { x1: L, x2: L + PW, y1: y, y2: y, class: 'grid' }, svg); txt(svg, L - 6, y + 4, opts.fmt(v), { 'text-anchor': 'end' }); });
+    [1, 21, 49, 85, 117, 143, 160].forEach(b => txt(svg, X(b), H - 8, 'bar ' + b, { 'text-anchor': 'middle' }));
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+    el('path', { d, style: 'fill:none;stroke:var(--g-acid);stroke-width:2;stroke-linejoin:round' }, svg);
+    txt(svg, L + 6, top + 12, opts.title, { class: 'lab', style: 'font-weight:600' });
+    const cross = el('line', { y1: top, y2: top + PH, style: 'stroke:var(--muted);stroke-width:1', visibility: 'hidden' }, svg);
+    const mk = el('circle', { r: 4.5, style: 'fill:var(--g-acid);stroke:var(--surface);stroke-width:2', visibility: 'hidden' }, svg);
+    svg.onmousemove = e => {
+      const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse());
+      const bar = (q.x - L) / PW * S.bars + 1; if (bar < 1 || bar > S.bars + 1) { cross.setAttribute('visibility', 'hidden'); mk.setAttribute('visibility', 'hidden'); return hideTip(); }
+      let k = 0; while (k < pts.length - 1 && pts[k + 1][0] <= bar) k++;
+      const v = pts[k][1], x = X(bar);
+      cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
+      mk.setAttribute('cx', x); mk.setAttribute('cy', Y(v)); mk.setAttribute('visibility', 'visible');
+      showTip(e, '<span class="mono">bar ' + bar.toFixed(1) + '</span><br><b>' + opts.fmtTip(v) + '</b>');
+    };
+    svg.onmouseleave = () => { cross.setAttribute('visibility', 'hidden'); mk.setAttribute('visibility', 'hidden'); hideTip(); };
+  }
+  function stepped(raw, lastBar) {
+    const out = []; raw.forEach(p => out.push(p)); if (out.length) out.push([lastBar, out[out.length - 1][1]]); return out;
+  }
+  function drawAcid() {
+    const cut = stepped(D.acid_automation.Filter_Frequency, S.bars + 1), res = stepped(D.acid_automation.Filter_Resonance, S.bars + 1);
+    const lg = v => Math.log10(Math.max(20, v));
+    lineChart('acid-cut', cut, { h: 210, title: 'High-pass cutoff · ' + D.acid_automation.Filter_Frequency.length + ' points',
+      y: (PH, top) => v => top + PH - (lg(v) - lg(20)) / (lg(10000) - lg(20)) * PH, ticks: [20, 100, 500, 2000, 10000], fmt: v => fmtHz(v).replace(' ', ''), fmtTip: v => fmtHz(v) });
+    lineChart('acid-res', res, { h: 110, title: 'Resonance · ' + D.acid_automation.Filter_Resonance.length + ' points',
+      y: (PH, top) => v => top + PH - v * PH, ticks: [0, 0.5, 1], fmt: v => v.toFixed(1), fmtTip: v => v.toFixed(2) });
+  }
+
+  // ---------- spectrograms ----------
+  const specKeys = ['Full mix', 'Kick', 'Toms', 'Acid Bass', 'Lead', 'Moody Melody', 'Shimmer Melody', 'High Keys', 'Claps', 'ClosedHH', 'Shaker', 'Shaker 2', 'Hat Rolls', 'Cowbell', 'Snare Roll', 'Aliens', '4-AFP_SDRL_crash_wareika', 'A-Bright Long Verb', 'B-Delay', 'Drums', 'Hats', 'Percs', 'Synths'].filter(k => D.spectrograms[k]);
+  let current = 'Full mix';
+  try { const s = localStorage.getItem('progacid-spec'); if (s && D.spectrograms[s]) current = s; } catch (e) {}
+  const chips = document.getElementById('spec-chips');
+  specKeys.forEach(k => { const b = document.createElement('button'); b.type = 'button'; b.textContent = k === '4-AFP_SDRL_crash_wareika' ? 'Crash FX' : k; b.dataset.k = k; b.onclick = () => { current = k; try { localStorage.setItem('progacid-spec', k); } catch (e) {} drawSpec(); }; chips.appendChild(b); });
+  function hex(c) { const m = c.replace('#', ''); return [0, 2, 4].map(i => parseInt(m.substr(i, 2), 16)); }
+  function drawSpec() {
+    [...chips.children].forEach(b => b.setAttribute('aria-pressed', b.dataset.k === current));
+    const [B, C, fmin, fmax] = D.spec_shape, s = D.spectrograms[current];
+    const raw = atob(s.data), stops = [0, 1, 2, 3, 4, 5].map(i => hex(css('--spec-' + i)));
+    const lut = new Array(256);
+    for (let v = 0; v < 256; v++) { const p = Math.pow(v / 255, 1.3) * 5, i = Math.min(4, Math.floor(p)), f = p - i; lut[v] = stops[i].map((c, j) => Math.round(c + (stops[i + 1][j] - c) * f)); }
+    const cv = document.getElementById('spec-canvas'), ctx = cv.getContext('2d');
+    const img = ctx.createImageData(C, B);
+    for (let b = 0; b < B; b++) for (let c = 0; c < C; c++) {
+      const v = raw.charCodeAt(b * C + c), o = ((B - 1 - b) * C + c) * 4, col = lut[v];
+      img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
+    }
+    const off = document.createElement('canvas'); off.width = C; off.height = B; off.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(off, 0, 0, cv.width, cv.height);
+    ctx.font = '11px ' + css('--f-mono'); ctx.fillStyle = css('--ink-2');
+    [50, 100, 200, 500, 1000, 2000, 5000, 10000].forEach(f => {
+      const y = cv.height - (Math.log(f / fmin) / Math.log(fmax / fmin)) * cv.height;
+      ctx.fillStyle = css('--surface'); ctx.globalAlpha = 0.75; ctx.fillRect(2, y - 8, 40, 14); ctx.globalAlpha = 1;
+      ctx.fillStyle = css('--ink'); ctx.fillText(fmtHz(f).replace(' ', ''), 5, y + 3);
+    });
+    const axis = document.getElementById('spec-axis'); axis.innerHTML = ''; const W = axis.clientWidth || 720;
+    axis.setAttribute('viewBox', '0 0 ' + W + ' 22');
+    const spb = 240 / S.tempo;
+    [1, 21, 53, 85, 117, 160].forEach(bar => { const x = Math.min(W - 30, (bar - 1) * spb / s.seconds * W); txt(axis, x, 15, 'bar ' + bar); });
+    const t = byName[current];
+    document.getElementById('spec-title').textContent = current === '4-AFP_SDRL_crash_wareika' ? 'Crash FX (4-AFP_SDRL_crash_wareika)' : current;
+    document.getElementById('spec-pulse').textContent = t && t.pulse ? 'pulse ' + t.pulse : (current === 'Full mix' ? 'pulse 1/16' : 'group stem');
+    document.getElementById('spec-desc').textContent = t ? (t.descriptors || []).join(' · ') : (current === 'Full mix' ? 'The whole song before your main chain: warm, low-mid-centred, 16th-note motion throughout.' : 'Sum of the group\'s tracks as Live rendered it.');
+  }
+  const cv = document.getElementById('spec-canvas');
+  cv.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect(), [B, C, fmin, fmax] = D.spec_shape, s = D.spectrograms[current];
+    const fx = (e.clientX - r.left) / r.width, fy = 1 - (e.clientY - r.top) / r.height;
+    const sec = fx * s.seconds, bar = sec / (240 / S.tempo) + 1, f = fmin * Math.pow(fmax / fmin, fy);
+    const v = atob(s.data).charCodeAt(Math.min(B - 1, Math.floor(fy * B)) * C + Math.min(C - 1, Math.floor(fx * C)));
+    showTip(e, '<span class="mono">bar ' + bar.toFixed(1) + ' · ' + fmtHz(f) + '<br>' + (v / 255 * 72 - 72).toFixed(0) + ' dB re peak</span>');
+  });
+  cv.addEventListener('mouseleave', hideTip);
+
+  // ---------- reference table ----------
+  function drawTable() {
+    const rows = D.tracks.filter(t => t.kind !== 'ReturnTrack');
+    const ret = D.tracks.filter(t => t.kind === 'ReturnTrack');
+    const head = '<thead><tr><th>Track</th><th>Source</th><th>Centre</th><th>Attack</th><th>Decay</th><th>Width</th><th>Pulse</th><th>Character</th></tr></thead>';
+    const row = t => {
+      const src = t.preset ? '<b>' + esc(t.preset.preset) + '</b><span class="sub">' + esc(t.preset.category || '') + ' · ' + esc(t.preset.pack || '') + '</span>'
+        : t.audio_sources ? esc(t.audio_sources[0].replace(/\.wav$/i, '')) + '<span class="sub">audio · ' + esc(t.chain.join(' → ')) + '</span>'
+        : t.samples ? esc(t.samples.slice(0, 3).join(', ')) + (t.samples.length > 3 ? '…' : '') + '<span class="sub">Drum Rack · ' + t.samples.length + '+ pads</span>'
+        : esc(t.chain.join(' → '));
+      if (t.silent) return '<tr><td><span class="dot" style="background:var(' + trackColor(t) + ')"></span>' + esc(t.name) + '</td><td>' + src + '</td><td class="num muted" colspan="5">no clips in the arrangement</td><td class="muted">unused</td></tr>';
+      return '<tr><td><span class="dot" style="background:var(' + trackColor(t) + ')"></span>' + esc(t.name) + '</td><td>' + src + '</td><td class="num">' + fmtHz(t.centroid.median) + '</td><td class="num">' + (t.attack_ms ?? '–') + ' ms</td><td class="num">' + (t.decay_ms ?? '–') + ' ms</td><td class="num">' + t.width_db.toFixed(1) + ' dB</td><td class="num">' + esc(t.pulse && !t.pulse.startsWith('free') ? t.pulse : 'free') + '</td><td>' + esc((t.descriptors || []).join(', ')) + '</td></tr>';
+    };
+    document.getElementById('ref').innerHTML = head + '<tbody>' + rows.map(row).join('') + ret.map(row).join('') + '</tbody>';
+  }
+
+  // ---------- families ----------
+  function drawFamilies() {
+    const fams = [
+      ['Low end', ['Kick', 'Toms'], 'Sub and bass only, mono, quarter-note pulse.'],
+      ['Top-end percussion', ['Hat Rolls', 'Shaker', 'ClosedHH', 'Shaker 2', 'Snare Roll'], 'Above 8 kHz, noisy, 6–40 ms events, 16ths.'],
+      ['Pads and melodies', ['Moody Melody', 'Shimmer Melody', 'Aliens', 'High Keys'], 'Mid band, wide, soft attacks, long tails, filter movement.'],
+      ['Mid-range rave stabs', ['Lead', 'Acid Bass', 'B-Delay'], 'Low-mid and mid, short decays, the lead and its delay echo.']
+    ];
+    const sim = (a, b) => ((byName[a].similar || []).find(s => s.track === b) || {}).similarity;
+    document.getElementById('families').innerHTML = fams.map(([title, names, note]) => {
+      let best = 0; names.forEach(a => names.forEach(b => { const v = a !== b && sim(a, b); if (v > best) best = v; }));
+      return '<div class="panel"><span class="score">closest pair ' + best.toFixed(2) + '</span><h3>' + title + '</h3><p class="ink2" style="font-size:14px">' + esc(names.join(', ')) + '</p><p class="muted" style="font-size:13.5px">' + note + '</p></div>';
+    }).join('');
+  }
+
+  legend('tl-legend', [['--g-drums', 'Drums group'], ['--g-synths', 'Synths group'], ['--g-acid', 'Acid Bass'], ['--accent', 'Your locators']]);
+  legend('ft-legend', [['--g-drums', 'Drums'], ['--g-synths', 'Synths'], ['--g-acid', 'Acid Bass'], ['--accent', 'High-pass cutoff']]);
+  legend('be-legend', BANDS.map(b => [b[2], b[1]]));
+  function all() { drawTimeline(); drawTerritory(); drawBands(); drawAcid(); drawSpec(); drawTable(); drawFamilies(); }
+  all();
+  // canvas colors come from tokens: repaint on theme changes
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawSpec);
+  new MutationObserver(drawSpec).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  addEventListener('resize', () => { clearTimeout(window.__rs); window.__rs = setTimeout(drawSpec, 150); });
+})();
+</script>

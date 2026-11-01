@@ -1,0 +1,22 @@
+# build output
+*.exe
+cli/build/
+__pycache__/
+*.pyc
+
+# audio and Live side files (stems stay next to the Live projects)
+*.wav
+*.aif
+*.aiff
+*.flac
+*.mp3
+*.asd
+live/**/Backup/
+live/**/Samples/Recorded/
+
+# local state
+runs/
+*.db
+*.sqlite
+*.sqlite3
+.env
