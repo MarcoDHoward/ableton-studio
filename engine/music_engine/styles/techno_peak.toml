@@ -1,0 +1,119 @@
+# Peak-time techno. Style packs are data: tune these by ear.
+#
+# Patterns are 16 steps per bar (16ths). Velocity classes: X accent, x normal, o ghost;
+# . - _ are rests; spaces and | are ignored. `steps` entries add or change single steps:
+#   step       a step index (0-15), or a list of them
+#   char       velocity class for a step the pattern leaves empty
+#   velocity   explicit velocity (overrides char)
+#   chance     probability 0-1 (Live's "Chance")
+#   condition  A:B, !A:B, fill, !fill, pre, !pre, first, !first
+#   degree     (pitched lanes) force this scale degree
+# A lane can use `euclid = { density = k, steps = n, rotation = r }` instead of `pattern`.
+# Drum pitches follow Live's Drum Rack layout: C1 36 kick, C#1 37 rim, D#1 39 clap, F#1 42 closed hat, A#1 46 open hat.
+
+name = "techno_peak"
+title = "Peak-time techno"
+key = "Am"
+fill_every = 8          # the last bar of every 8 is a fill bar
+
+[tempo]
+default = 132
+min = 128
+max = 135
+
+[groove]
+swing = 54              # MPC swing %: 50 straight, 66 triplet
+swing_grid = 16
+
+[velocity]              # default velocity per class; lanes may override
+X = 120
+x = 100
+o = 64
+
+# ---------------------------------------------------------------- drums
+[parts.drums]
+channel = 10
+
+[parts.drums.lanes.kick]
+pitch = 36
+pattern = "X... X... X... X..."
+duration = 1
+groove = 0              # the kick stays on the grid
+velocity_deviation = 2
+steps = [
+  { step = 7,  char = "o", velocity = 58, chance = 0.4 },     # ghost kick before beat 3, sometimes
+  { step = 15, char = "o", velocity = 52, condition = "!pre" }, # ...otherwise one before the next bar
+]
+
+[parts.drums.lanes.clap]
+pitch = 39
+pattern = ".... X... .... X..."
+duration = 1
+groove = 0
+velocity_deviation = 4
+steps = [
+  { step = 11, char = "o", velocity = 50, condition = "2:4" },           # ghost clap before beat 4, bar 2 of every 4
+  { step = [13, 14, 15], char = "x", condition = "fill" },                # clap roll in fill bars
+  { step = 13, velocity = 78 }, { step = 14, velocity = 92 }, { step = 15, velocity = 110 },
+]
+
+[parts.drums.lanes.hat_closed]
+pitch = 42
+pattern = "xoXo xoXo xoXo xoXo"
+velocity = { X = 96, x = 80, o = 58 }
+duration = 0.5
+velocity_deviation = 6
+steps = [
+  { step = [1, 3, 5, 7, 9, 11, 13, 15], chance = 0.85 },  # thin the ghost 16ths a little
+]
+
+[parts.drums.lanes.hat_open]
+pitch = 46
+pattern = "..X. ..X. ..X. ..X."
+velocity = { X = 104, x = 90, o = 70 }
+duration = 1.5
+velocity_deviation = 4
+steps = [
+  { step = 14, condition = "!4:4" },            # every 4th bar the last open hat...
+  { step = 15, char = "x", condition = "4:4" }, # ...moves a 16th later
+]
+
+[parts.drums.lanes.perc]
+pitch = 37
+euclid = { density = 5, steps = 13, rotation = 2 }   # a 13-step cycle drifting against the bar
+char = "o"
+duration = 0.5
+velocity = { X = 90, x = 76, o = 62 }
+velocity_deviation = 8
+chance = 0.9
+
+# ---------------------------------------------------------------- bass
+[parts.bass]
+channel = 1
+
+[parts.bass.lanes.rolling]
+register_low = 31       # root = lowest root pitch at or above G0
+pattern = "-xXx -xXx -xXx -xXx"   # rolling 16ths, out of the kick's way
+velocity = { X = 112, x = 96, o = 80 }
+duration = 0.7
+velocity_deviation = 5
+degrees = [[1, 0.8], [8, 0.1], [7, 0.05], [5, 0.05]]
+steps = [
+  { step = [1, 5, 9, 13], degree = 1 },   # always the root right after the kick
+]
+
+# ---------------------------------------------------------------- stab
+[parts.stab]
+channel = 2
+
+[parts.stab.lanes.stab]
+register_low = 55       # root at or above G2
+chord = [1, 3, 5, 7]    # a minor-7th stab in a minor key
+pattern = ".... ..X. .... ...."
+velocity = { X = 108, x = 92, o = 72 }
+duration = 1
+velocity_deviation = 4
+steps = [
+  { step = 11, char = "x", condition = "2:2" },   # an answer on every second bar
+  { step = 3,  char = "o", chance = 0.3 },         # sometimes an early push
+]

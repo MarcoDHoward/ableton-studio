@@ -1,6 +1,7 @@
 # build output
 *.exe
 cli/build/
+engine/out/
 *.mcpb
 __pycache__/
 *.pyc
@@ -20,3 +21,4 @@ runs/
 *.sqlite
 *.sqlite3
 .env
+.venv/

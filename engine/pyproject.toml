@@ -1,0 +1,15 @@
+[project]
+name = "music-engine"
+version = "0.1.0"
+description = "Deterministic music engine: renders rhythm, pitch and structure into MIDI"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["mido"]
+
+[project.scripts]
+engine = "music_engine.cli:main"
+
+[tool.setuptools.package-data]
+music_engine = ["styles/*.toml"]
