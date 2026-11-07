@@ -1,0 +1,8 @@
+# Root-anchored so cmd/<binary>/ source stays tracked.
+/ableton-pp-cli
+/ableton-pp-cli.exe
+/ableton-pp-mcp
+/ableton-pp-mcp.exe
+/bin/
+/build/
+/dist/

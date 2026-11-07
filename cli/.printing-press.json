@@ -1,0 +1,117 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-11-07T07:15:25.2922161Z",
+  "printing_press_version": "4.35.0",
+  "api_name": "ableton",
+  "display_name": "Ableton Live",
+  "cli_name": "ableton-pp-cli",
+  "creator": {
+    "handle": "MarcoDHoward",
+    "name": "Marco"
+  },
+  "owner": "marcodhoward",
+  "printer": "MarcoDHoward",
+  "printer_name": "Marco",
+  "spec_path": "spec.yaml",
+  "spec_format": "internal",
+  "spec_checksum": "sha256:80d8ce35c7b2901010984abf13cbe5d09f916809278aa50386757206dccac428",
+  "run_id": "20261031-180003-9d31a8c1",
+  "category": "media-and-entertainment",
+  "description": "Control Ableton Live from the terminal by track and device name, with backups for note edits and a journal of every change.",
+  "mcp_binary": "ableton-pp-mcp",
+  "mcp_tool_count": 86,
+  "mcp_public_tool_count": 86,
+  "mcp_ready": "full",
+  "api_version": "0.1.0",
+  "auth_type": "none",
+  "novel_features": [
+    {
+      "name": "Safe note rewrite with backups",
+      "command": "notes replace",
+      "description": "Overwrite a clip's MIDI notes from JSON with an automatic backup, and restore any earlier version."
+    },
+    {
+      "name": "Load device by name",
+      "command": "device add",
+      "description": "Load an instrument or effect onto a track by its browser name, such as Echo or Drift. Needs the browser index (run sync --resources browser once) and the AbletonMCP script."
+    },
+    {
+      "name": "Arrangement from scenes",
+      "command": "arrangement build",
+      "description": "Lay out a whole song in the Arrangement from Session scenes, with a named locator at each section. Needs the AbletonMCP script."
+    },
+    {
+      "name": "Mixer scenes",
+      "command": "mix save",
+      "description": "Save every track's volume, pan, mute, solo and sends under a name and recall them later."
+    },
+    {
+      "name": "Action journal with targeted revert",
+      "command": "journal list",
+      "description": "See every change this CLI made, with before and after values; roll back specific ones with journal revert."
+    },
+    {
+      "name": "Snapshot diff",
+      "command": "snapshot diff",
+      "description": "Compare two saved project snapshots, or a snapshot against the live set: tracks, mixer, devices, parameters, clips and notes. Reading the live set needs the AbletonMCP script."
+    },
+    {
+      "name": "Device chain save and apply",
+      "command": "chain save",
+      "description": "Save a track's chain of devices with their settings; chain apply rebuilds it on another track (needs the browser index and the AbletonMCP script)."
+    }
+  ],
+  "novel_features_built": [
+    {
+      "name": "Safe note rewrite with backups",
+      "command": "notes replace",
+      "description": "Overwrite a clip's MIDI notes from JSON with an automatic backup, and restore any earlier version."
+    },
+    {
+      "name": "Load device by name",
+      "command": "device add",
+      "description": "Load an instrument or effect onto a track by its browser name, such as Echo or Drift. Needs the browser index (run sync --resources browser once) and the AbletonMCP script."
+    },
+    {
+      "name": "Arrangement from scenes",
+      "command": "arrangement build",
+      "description": "Lay out a whole song in the Arrangement from Session scenes, with a named locator at each section. Needs the AbletonMCP script."
+    },
+    {
+      "name": "Mixer scenes",
+      "command": "mix save",
+      "description": "Save every track's volume, pan, mute, solo and sends under a name and recall them later."
+    },
+    {
+      "name": "Action journal with targeted revert",
+      "command": "journal list",
+      "description": "See every change this CLI made, with before and after values; roll back specific ones with journal revert."
+    },
+    {
+      "name": "Snapshot diff",
+      "command": "snapshot diff",
+      "description": "Compare two saved project snapshots, or a snapshot against the live set: tracks, mixer, devices, parameters, clips and notes. Reading the live set needs the AbletonMCP script."
+    },
+    {
+      "name": "Device chain save and apply",
+      "command": "chain save",
+      "description": "Save a track's chain of devices with their settings; chain apply rebuilds it on another track (needs the browser index and the AbletonMCP script)."
+    }
+  ],
+  "verify": {
+    "mode": "mock",
+    "pass_rate": 98.38709677419355,
+    "passed": 122,
+    "total": 124,
+    "failed": 2,
+    "data_pipeline": true,
+    "verdict": "PASS"
+  },
+  "scorecard": {
+    "steinberger": {
+      "percentage": 96,
+      "grade": "A",
+      "total": 96
+    }
+  }
+}

@@ -1,0 +1,1847 @@
+{
+  "api_name": "ableton",
+  "base_url": "osc://127.0.0.1:11000",
+  "description": "Control Ableton Live from the terminal by track and device name, with backups for note edits and a journal of every change.",
+  "mcp_ready": "full",
+  "http_transport": "standard",
+  "mcp": {
+    "endpoint_tools": "hidden",
+    "orchestration": "code"
+  },
+  "auth": {
+    "type": "none"
+  },
+  "required_headers": [],
+  "tools": [
+    {
+      "name": "arrangement_add-clip",
+      "description": "Create an empty MIDI clip on the Arrangement timeline (needs AbletonPPExtras). Required: track, at. Optional: bars (default: 4). Returns the new ArrangementClip.",
+      "method": "POST",
+      "path": "/arrangement/{track}/clips",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "MIDI track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "at",
+          "type": "string",
+          "location": "body",
+          "description": "Start position as beats (32) or bar.beat (9.1)",
+          "required": true
+        },
+        {
+          "name": "bars",
+          "type": "float",
+          "location": "body",
+          "description": "Length in bars (default 4)"
+        }
+      ]
+    },
+    {
+      "name": "arrangement_clips",
+      "description": "List a track's Arrangement clips with start, end and bar.beat positions. Required: track. Returns array of ArrangementClip.",
+      "method": "GET",
+      "path": "/arrangement/{track}/clips",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "arrangement_delete-clip",
+      "description": "Delete an Arrangement clip (needs AbletonPPExtras). Required: track, clip. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/arrangement/{track}/clips/{clip}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "clip",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip number from 'arrangement clips'",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "automation_clear",
+      "description": "Clear a clip's automation envelope for a device parameter. Required: track, slot, device, param. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/automation/{track}/{slot}/{device}/{param}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "param",
+          "type": "string",
+          "location": "path",
+          "description": "Parameter name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "automation_get",
+      "description": "Read a clip's automation envelope for a device parameter. Required: track, slot, device, param. Optional: step (default: 0.25). Returns array of AutomationPoint.",
+      "method": "GET",
+      "path": "/automation/{track}/{slot}/{device}/{param}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "param",
+          "type": "string",
+          "location": "path",
+          "description": "Parameter name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "step",
+          "type": "float",
+          "location": "query",
+          "description": "Sampling step in beats"
+        }
+      ]
+    },
+    {
+      "name": "automation_set",
+      "description": "Write automation points into a clip's envelope from JSON. Required: track, slot, device, param, points. Returns the updated Ack.",
+      "method": "PUT",
+      "path": "/automation/{track}/{slot}/{device}/{param}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "param",
+          "type": "string",
+          "location": "path",
+          "description": "Parameter name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "points",
+          "type": "array",
+          "location": "body",
+          "description": "Points to write: [{time, value, duration}] with time and duration in beats",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "browser_index",
+      "description": "Every loadable browser item (two levels deep), for 'sync' and 'device add'. Returns array of BrowserItem.",
+      "method": "GET",
+      "path": "/browser/index",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "browser_list",
+      "description": "List the items inside a browser folder, e.g. instruments or drums/Kits. Required: path. Returns array of BrowserItem.",
+      "method": "GET",
+      "path": "/browser/items",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "location": "query",
+          "description": "Browser path starting with a category, e.g. instruments, audio_effects or drums",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "browser_tree",
+      "description": "Show the browser's top-level categories and their folders. Optional: category (default: all). Returns array of BrowserItem.",
+      "method": "GET",
+      "path": "/browser/tree",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "category",
+          "type": "string",
+          "location": "query",
+          "description": "Browser category"
+        }
+      ]
+    },
+    {
+      "name": "clip_create",
+      "description": "Create an empty MIDI clip in a slot. Required: track, slot. Optional: bars (default: 4), name. Returns the new Clip.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "bars",
+          "type": "float",
+          "location": "body",
+          "description": "Length in bars (default 4)"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Clip name"
+        }
+      ]
+    },
+    {
+      "name": "clip_delete",
+      "description": "Delete the clip in a slot. Required: track, slot. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/clips/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_duplicate",
+      "description": "Copy a clip to an empty slot. Required: track, slot, to_slot. Optional: to_track. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/duplicate",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "to_track",
+          "type": "string",
+          "location": "body",
+          "description": "Destination track (default: same track)"
+        },
+        {
+          "name": "to_slot",
+          "type": "int",
+          "location": "body",
+          "description": "Destination 1-based slot (must be empty)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_duplicate-loop",
+      "description": "Double a clip's loop, copying its notes into the new half. Required: track, slot. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/duplicate-loop",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_fire",
+      "description": "Launch a clip. Required: track, slot. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/fire",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_get",
+      "description": "Show all properties of a Session clip. Required: track, slot. Returns the Clip.",
+      "method": "GET",
+      "path": "/clips/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot (scene row) number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_import-audio",
+      "description": "Create an audio clip from a local audio file (Live 12.0.5 or newer). Required: track, slot, file. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/import-audio",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Audio track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "file",
+          "type": "string",
+          "location": "body",
+          "description": "Absolute path to a local .wav, .aif, .mp3 or .flac file (network paths are refused)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_set",
+      "description": "Change one clip property (the change is journaled). Required: track, slot, prop, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/clips/{track}/{slot}/props/{prop}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "prop",
+          "type": "string",
+          "location": "path",
+          "description": "Clip property name",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "location": "body",
+          "description": "New value (number, on/off, or an enum name such as complex or 1/4)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_stop",
+      "description": "Stop a playing clip. Required: track, slot. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/stop",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clip_to-arrangement",
+      "description": "Copy a Session clip onto the same track in the Arrangement at a position. Required: track, slot, at. Returns the new Ack.",
+      "method": "POST",
+      "path": "/clips/{track}/{slot}/to-arrangement",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "at",
+          "type": "string",
+          "location": "body",
+          "description": "Arrangement position as beats (32) or bar.beat (9.1)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clips_grid",
+      "description": "Show every track's clip slots with clip names and lengths. Returns array of ClipSlot.",
+      "method": "GET",
+      "path": "/clips",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "device_delete",
+      "description": "Delete a device from a track (needs the AbletonPPExtras script). Required: track, device. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/tracks/{track}/devices/{device}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "device_disable",
+      "description": "Turn a device off (bypass). Required: track, device. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/devices/{device}/disable",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "device_enable",
+      "description": "Turn a device on. Required: track, device. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/devices/{device}/enable",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "device_list",
+      "description": "List a track's devices with their type and class. Required: track. Returns array of Device.",
+      "method": "GET",
+      "path": "/tracks/{track}/devices",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "device_load",
+      "description": "Load an instrument, effect or plugin onto a track by its browser URI. Required: track, uri. Returns the new Ack.",
+      "method": "POST",
+      "path": "/tracks/{track}/devices",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "uri",
+          "type": "string",
+          "location": "body",
+          "description": "Browser URI from 'browser list' or 'browser tree', e.g. query:Synths#Drift",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "drums_load",
+      "description": "Load a Drum Rack and a kit from the browser onto a track. Required: track, kit. Optional: rack_uri. Returns the new Ack.",
+      "method": "POST",
+      "path": "/tracks/{track}/drum-kit",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "kit",
+          "type": "string",
+          "location": "body",
+          "description": "Kit path inside the browser's drums category, e.g. drums/Kit-Core 909",
+          "required": true
+        },
+        {
+          "name": "rack_uri",
+          "type": "string",
+          "location": "body",
+          "description": "Drum Rack URI (default: Live's empty Drum Rack)"
+        }
+      ]
+    },
+    {
+      "name": "drums_pads",
+      "description": "List a Drum Rack's filled pads (needs the AbletonPPExtras script). Required: track, device. Returns array of DrumPad.",
+      "method": "GET",
+      "path": "/tracks/{track}/devices/{device}/pads",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Drum Rack name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "health_check",
+      "description": "Check which Remote Scripts answer and their versions. Returns the Health.",
+      "method": "GET",
+      "path": "/health",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "locator_add",
+      "description": "Add a named locator at a beat or bar.beat (renames an existing one at the same spot). Required: name, at. Returns the new Locator.",
+      "method": "POST",
+      "path": "/locators",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Locator name",
+          "required": true
+        },
+        {
+          "name": "at",
+          "type": "string",
+          "location": "body",
+          "description": "Position as beats (64) or bar.beat (17.1)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "locator_delete",
+      "description": "Delete a locator. Required: locator. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/locators/{locator}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "locator",
+          "type": "string",
+          "location": "path",
+          "description": "Locator name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "locator_jump",
+      "description": "Move the playhead to a locator, by name or number. Required: locator. Returns the new Ack.",
+      "method": "POST",
+      "path": "/locators/{locator}/jump",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "locator",
+          "type": "string",
+          "location": "path",
+          "description": "Locator name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "locator_list",
+      "description": "List locators with their beat and bar.beat positions. Returns array of Locator.",
+      "method": "GET",
+      "path": "/locators",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "locator_next",
+      "description": "Jump to the next locator. Returns the new Ack.",
+      "method": "POST",
+      "path": "/locators/next",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "locator_prev",
+      "description": "Jump to the previous locator. Returns the new Ack.",
+      "method": "POST",
+      "path": "/locators/prev",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "locator_rename",
+      "description": "Rename a locator. Required: locator, name. Returns the updated Locator.",
+      "method": "PUT",
+      "path": "/locators/{locator}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "locator",
+          "type": "string",
+          "location": "path",
+          "description": "Locator name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "New locator name",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "message_show",
+      "description": "Show a short message in Live's status bar. Required: text. Returns the new Ack.",
+      "method": "POST",
+      "path": "/message",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "location": "body",
+          "description": "Message text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "midimap_cc",
+      "description": "Make a MIDI CC control a device parameter. Required: track, device, param, channel, cc. Returns the new Ack.",
+      "method": "POST",
+      "path": "/midimap",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "body",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "body",
+          "description": "Device name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "param",
+          "type": "string",
+          "location": "body",
+          "description": "Parameter name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "type": "int",
+          "location": "body",
+          "description": "MIDI channel 1-16",
+          "required": true
+        },
+        {
+          "name": "cc",
+          "type": "int",
+          "location": "body",
+          "description": "Controller number 0-127",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "notes_add",
+      "description": "Add notes to a MIDI clip from JSON (keeps existing notes). Required: track, slot, notes. Returns the new Ack.",
+      "method": "POST",
+      "path": "/notes/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "notes",
+          "type": "array",
+          "location": "body",
+          "description": "Notes to add: [{pitch, start, duration, velocity, mute}] with start and duration in beats",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "notes_clear",
+      "description": "Remove notes from a MIDI clip, optionally only within a pitch and time range. Required: track, slot. Optional: pitch_from, pitch_to, time_from (plus 1 more). Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/notes/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        },
+        {
+          "name": "pitch_from",
+          "type": "int",
+          "location": "query",
+          "description": "Lowest MIDI pitch to remove (default 0)"
+        },
+        {
+          "name": "pitch_to",
+          "type": "int",
+          "location": "query",
+          "description": "Highest MIDI pitch to remove (default 127)"
+        },
+        {
+          "name": "time_from",
+          "type": "float",
+          "location": "query",
+          "description": "Start of the time range in beats (default 0)"
+        },
+        {
+          "name": "time_to",
+          "type": "float",
+          "location": "query",
+          "description": "End of the time range in beats (default: clip end)"
+        }
+      ]
+    },
+    {
+      "name": "notes_get",
+      "description": "Read every note in a MIDI clip as JSON (pitch, start, duration, velocity, mute). Required: track, slot. Returns array of Note.",
+      "method": "GET",
+      "path": "/notes/{track}/{slot}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "path",
+          "description": "1-based clip slot number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "param_list",
+      "description": "List a device's parameters with value, range and display text. Required: track, device. Returns array of Parameter.",
+      "method": "GET",
+      "path": "/tracks/{track}/devices/{device}/params",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "param_set",
+      "description": "Set a device parameter by name or number (range-checked and journaled). Required: track, device, param, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/devices/{device}/params/{param}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Device name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "param",
+          "type": "string",
+          "location": "path",
+          "description": "Parameter name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "float",
+          "location": "body",
+          "description": "New value within the parameter's min..max",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "play_start",
+      "description": "Start Live's transport from the current position. Returns the new Ack.",
+      "method": "POST",
+      "path": "/transport/play",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "rack_chains",
+      "description": "List a rack's chains with volume, pan, mute and solo (needs AbletonPPExtras). Required: track, device. Returns array of RackChain.",
+      "method": "GET",
+      "path": "/tracks/{track}/devices/{device}/chains",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Rack name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "rack_inspect",
+      "description": "Show a rack's nested devices and which macros are mapped. Required: track, device. Returns the RackInfo.",
+      "method": "GET",
+      "path": "/tracks/{track}/devices/{device}/rack",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Rack name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "rack_map-macro",
+      "description": "Map every nested device's Dry/Wet (or Mix/Amount) to Macro 1 and name it. Required: track, device. Optional: name (default: Magnitude). Returns the new Ack.",
+      "method": "POST",
+      "path": "/tracks/{track}/devices/{device}/rack/map-macro",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "path",
+          "description": "Rack name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Macro label (default Magnitude)"
+        }
+      ]
+    },
+    {
+      "name": "record_capture",
+      "description": "Capture MIDI you just played into a new clip. Returns the new Ack.",
+      "method": "POST",
+      "path": "/record/capture",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "record_session",
+      "description": "Turn Session record on or off. Required: on. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/record/session",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "on",
+          "type": "bool",
+          "location": "body",
+          "description": "true to arm Session record, false to disarm",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "record_trigger",
+      "description": "Trigger Session record (like pressing the Session record button). Returns the new Ack.",
+      "method": "POST",
+      "path": "/record/trigger",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "redo_last",
+      "description": "Redo the last undone operation. Returns the new Ack.",
+      "method": "POST",
+      "path": "/song/redo",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "scene_create",
+      "description": "Create a scene. Optional: name, index. Returns the new Scene.",
+      "method": "POST",
+      "path": "/scenes",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Scene name"
+        },
+        {
+          "name": "index",
+          "type": "int",
+          "location": "body",
+          "description": "1-based position (default: end)"
+        }
+      ]
+    },
+    {
+      "name": "scene_delete",
+      "description": "Delete a scene. Required: scene. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/scenes/{scene}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "scene",
+          "type": "string",
+          "location": "path",
+          "description": "Scene name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "scene_duplicate",
+      "description": "Duplicate a scene with its clips. Required: scene. Returns the new Ack.",
+      "method": "POST",
+      "path": "/scenes/{scene}/duplicate",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "scene",
+          "type": "string",
+          "location": "path",
+          "description": "Scene name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "scene_fire",
+      "description": "Launch a scene. Required: scene. Returns the new Ack.",
+      "method": "POST",
+      "path": "/scenes/{scene}/fire",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "scene",
+          "type": "string",
+          "location": "path",
+          "description": "Scene name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "scene_fire-selected",
+      "description": "Launch the selected scene and select the next one. Returns the new Ack.",
+      "method": "POST",
+      "path": "/scenes/selected/fire",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "scene_list",
+      "description": "List scenes with name, tempo, time signature and color. Returns array of Scene.",
+      "method": "GET",
+      "path": "/scenes",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "scene_set",
+      "description": "Change a scene's name, color, tempo or time signature. Required: scene, prop, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/scenes/{scene}/props/{prop}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "scene",
+          "type": "string",
+          "location": "path",
+          "description": "Scene name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "prop",
+          "type": "string",
+          "location": "path",
+          "description": "Scene property",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "location": "body",
+          "description": "New value",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "snapshot_get",
+      "description": "List stored project snapshots (same as 'snapshot list'); Live is not contacted. 'snapshot save' reads the set. Optional: notes (default: true), params (default: true). Returns the Snapshot.",
+      "method": "GET",
+      "path": "/snapshot",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "notes",
+          "type": "bool",
+          "location": "query",
+          "description": "Include MIDI notes"
+        },
+        {
+          "name": "params",
+          "type": "bool",
+          "location": "query",
+          "description": "Include device parameter values"
+        }
+      ]
+    },
+    {
+      "name": "song_continue",
+      "description": "Resume playback from where it stopped. Returns the new Ack.",
+      "method": "POST",
+      "path": "/song/continue",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "song_get",
+      "description": "Read a song property. Required: prop. Returns the PropValue.",
+      "method": "GET",
+      "path": "/song/props/{prop}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "prop",
+          "type": "string",
+          "location": "path",
+          "description": "Song property name",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "song_seek",
+      "description": "Move the playhead to a beat or bar.beat position, or jump by a number of beats. Optional: to, by. Returns the new PropChange.",
+      "method": "POST",
+      "path": "/song/seek",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "to",
+          "type": "string",
+          "location": "body",
+          "description": "Target position as beats (64) or bar.beat (17.1)"
+        },
+        {
+          "name": "by",
+          "type": "float",
+          "location": "body",
+          "description": "Jump relative to the current position, in beats (negative jumps back)"
+        }
+      ]
+    },
+    {
+      "name": "song_set",
+      "description": "Change a song property (the change is journaled). Required: prop, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/song/props/{prop}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "prop",
+          "type": "string",
+          "location": "path",
+          "description": "Song property name",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "location": "body",
+          "description": "New value: a number, on/off, or a quantization name such as 1/4",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "song_stop-clips",
+      "description": "Stop all playing clips, or only one track's clips with --track. Optional: track. Returns the new Ack.",
+      "method": "POST",
+      "path": "/song/stop-clips",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "query",
+          "description": "Only stop clips on this track (name or number)"
+        }
+      ]
+    },
+    {
+      "name": "song_tap-tempo",
+      "description": "Tap the Tap Tempo button once. Returns the new Ack.",
+      "method": "POST",
+      "path": "/song/tap-tempo",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "status_get",
+      "description": "Show tempo, time signature, play state, loop and every track with its mixer state. Returns the SessionStatus.",
+      "method": "GET",
+      "path": "/status",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "stop_now",
+      "description": "Stop Live's transport. Returns the new Ack.",
+      "method": "POST",
+      "path": "/transport/stop",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "track_arm",
+      "description": "Arm or disarm a track for recording. Required: track, on. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/arm",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "on",
+          "type": "bool",
+          "location": "body",
+          "description": "true to arm, false to disarm",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_color",
+      "description": "Set a track's color from Live's palette (0-69). Required: track, index. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/color",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "index",
+          "type": "int",
+          "location": "body",
+          "description": "Live color palette index, 0-69",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_create",
+      "description": "Create a MIDI, audio or return track. Required: type. Optional: name, index. Returns the new Track.",
+      "method": "POST",
+      "path": "/tracks",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "type",
+          "type": "string",
+          "location": "body",
+          "description": "Track type",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "Name for the new track"
+        },
+        {
+          "name": "index",
+          "type": "int",
+          "location": "body",
+          "description": "1-based position to insert at (default: end)"
+        }
+      ]
+    },
+    {
+      "name": "track_delete",
+      "description": "Delete a track. Required: track. Returns the Ack. Destructive.",
+      "method": "DELETE",
+      "path": "/tracks/{track}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_duplicate",
+      "description": "Duplicate a track with its devices and clips. Required: track. Returns the new Ack.",
+      "method": "POST",
+      "path": "/tracks/{track}/duplicate",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_get",
+      "description": "Show a track's mixer state, devices and clip slots. Required: track. Returns the TrackDetail.",
+      "method": "GET",
+      "path": "/tracks/{track}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_meter",
+      "description": "Current output levels for every track. Returns array of Meter.",
+      "method": "GET",
+      "path": "/meters",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "track_mute",
+      "description": "Mute or unmute a track. Required: track, on. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/mute",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "on",
+          "type": "bool",
+          "location": "body",
+          "description": "true to mute, false to unmute",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_pan",
+      "description": "Set a track's pan from -1 (left) to 1 (right). Required: track, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/pan",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "float",
+          "location": "body",
+          "description": "Pan, -1 to 1",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_rename",
+      "description": "Rename a track. Required: track, name. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/name",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "location": "body",
+          "description": "New track name",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_routing",
+      "description": "Show a track's input/output routing, the available routes and its monitoring state. Required: track. Returns the Routing.",
+      "method": "GET",
+      "path": "/tracks/{track}/routing",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_send",
+      "description": "Set a send level (send A = 1) as a 0-1 knob value. Required: track, send, value. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/sends/{send}",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "send",
+          "type": "string",
+          "location": "path",
+          "description": "Send letter (A, B, ...) or 1-based number",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "float",
+          "location": "body",
+          "description": "Send level 0-1",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_set-routing",
+      "description": "Change a track's input/output routing or monitoring. Required: track. Optional: input_type, input_channel, output_type (plus 2 more). Returns the updated Routing.",
+      "method": "PUT",
+      "path": "/tracks/{track}/routing",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "input_type",
+          "type": "string",
+          "location": "body",
+          "description": "Input routing type, e.g. All Ins"
+        },
+        {
+          "name": "input_channel",
+          "type": "string",
+          "location": "body",
+          "description": "Input routing channel"
+        },
+        {
+          "name": "output_type",
+          "type": "string",
+          "location": "body",
+          "description": "Output routing type, e.g. Main"
+        },
+        {
+          "name": "output_channel",
+          "type": "string",
+          "location": "body",
+          "description": "Output routing channel"
+        },
+        {
+          "name": "monitoring",
+          "type": "string",
+          "location": "body",
+          "description": "Monitoring state"
+        }
+      ]
+    },
+    {
+      "name": "track_solo",
+      "description": "Solo or unsolo a track. Required: track, on. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/solo",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "on",
+          "type": "bool",
+          "location": "body",
+          "description": "true to solo, false to unsolo",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "track_volume",
+      "description": "Set a track's volume as a 0-1 fader value, or in dB (-inf to +6; --db needs AbletonPPExtras). Required: track. Optional: db, fader. Returns the updated PropChange.",
+      "method": "PUT",
+      "path": "/tracks/{track}/volume",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "path",
+          "description": "Track name or 1-based number",
+          "required": true
+        },
+        {
+          "name": "db",
+          "type": "float",
+          "location": "body",
+          "description": "Volume in dB, e.g. -6"
+        },
+        {
+          "name": "fader",
+          "type": "float",
+          "location": "body",
+          "description": "Raw fader position 0-1 (0.85 = 0 dB)"
+        }
+      ]
+    },
+    {
+      "name": "tracks_list",
+      "description": "List every track: number, name, type, volume (0-1 fader, plus dB with AbletonPPExtras), pan, mute, solo, arm and sends. Returns array of Track.",
+      "method": "GET",
+      "path": "/tracks",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "undo_last",
+      "description": "Undo the last operation in Live's undo history (includes your own mouse edits). Returns the new Ack.",
+      "method": "POST",
+      "path": "/song/undo",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "view_get",
+      "description": "Show the selected track, scene, clip and device. Returns the Selection.",
+      "method": "GET",
+      "path": "/view/selection",
+      "no_auth": true,
+      "params": []
+    },
+    {
+      "name": "view_select",
+      "description": "Select a track, scene, clip or device. Optional: track, scene, slot (plus 1 more). Returns the updated Selection.",
+      "method": "PUT",
+      "path": "/view/selection",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "track",
+          "type": "string",
+          "location": "body",
+          "description": "Track name or 1-based number"
+        },
+        {
+          "name": "scene",
+          "type": "string",
+          "location": "body",
+          "description": "Scene name or 1-based number"
+        },
+        {
+          "name": "slot",
+          "type": "int",
+          "location": "body",
+          "description": "1-based clip slot (with --track selects that clip)"
+        },
+        {
+          "name": "device",
+          "type": "string",
+          "location": "body",
+          "description": "Device name or 1-based number on --track"
+        }
+      ]
+    },
+    {
+      "name": "view_show",
+      "description": "Switch Live's main window to the Arrangement view (switching to Session is not supported). Required: view. Returns the updated Ack.",
+      "method": "PUT",
+      "path": "/view/main",
+      "no_auth": true,
+      "params": [
+        {
+          "name": "view",
+          "type": "string",
+          "location": "body",
+          "description": "Which view to show",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "novel_features": [
+    {
+      "name": "Safe note rewrite with backups",
+      "command": "notes replace",
+      "description": "Overwrite a clip's MIDI notes from JSON with an automatic backup, and restore any earlier version."
+    },
+    {
+      "name": "Load device by name",
+      "command": "device add",
+      "description": "Load an instrument or effect onto a track by its browser name, such as Echo or Drift. Needs the browser index (run sync --resources browser once) and the AbletonMCP script."
+    },
+    {
+      "name": "Arrangement from scenes",
+      "command": "arrangement build",
+      "description": "Lay out a whole song in the Arrangement from Session scenes, with a named locator at each section. Needs the AbletonMCP script."
+    },
+    {
+      "name": "Mixer scenes",
+      "command": "mix save",
+      "description": "Save every track's volume, pan, mute, solo and sends under a name and recall them later."
+    },
+    {
+      "name": "Action journal with targeted revert",
+      "command": "journal list",
+      "description": "See every change this CLI made, with before and after values; roll back specific ones with journal revert."
+    },
+    {
+      "name": "Snapshot diff",
+      "command": "snapshot diff",
+      "description": "Compare two saved project snapshots, or a snapshot against the live set: tracks, mixer, devices, parameters, clips and notes. Reading the live set needs the AbletonMCP script."
+    },
+    {
+      "name": "Device chain save and apply",
+      "command": "chain save",
+      "description": "Save a track's chain of devices with their settings; chain apply rebuilds it on another track (needs the browser index and the AbletonMCP script)."
+    }
+  ]
+}

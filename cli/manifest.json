@@ -1,0 +1,27 @@
+{
+  "manifest_version": "0.3",
+  "name": "ableton-pp-mcp",
+  "display_name": "Ableton Live",
+  "version": "0.1.0",
+  "description": "Control Ableton Live from the terminal by track and device name, with backups for note edits and a journal of every change.",
+  "author": {
+    "name": "CLI Printing Press"
+  },
+  "license": "Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "bin/ableton-pp-mcp",
+    "mcp_config": {
+      "command": "${__dirname}/bin/ableton-pp-mcp",
+      "args": []
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ]
+  }
+}

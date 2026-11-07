@@ -1,18 +1,18 @@
 # build output
 *.exe
 cli/build/
+*.mcpb
 __pycache__/
 *.pyc
 
-# audio and Live side files (stems stay next to the Live projects)
+# audio and Live side files (Live sets and stems live on F:\AIMusic, never here)
 *.wav
 *.aif
 *.aiff
 *.flac
 *.mp3
 *.asd
-live/**/Backup/
-live/**/Samples/Recorded/
+*.als
 
 # local state
 runs/

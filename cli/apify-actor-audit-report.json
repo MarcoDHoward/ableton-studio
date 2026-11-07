@@ -1,0 +1,9 @@
+{
+  "dir": "\u003ccli-dir\u003e\\ableton-pp-cli",
+  "research_dir": "\u003ccli-dir\u003e\\20261031-180003-9d31a8c1",
+  "verdict": "pass",
+  "actors": null,
+  "issues": [
+    "no Apify actor references found, skipping"
+  ]
+}

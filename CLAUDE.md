@@ -11,9 +11,10 @@ Claude as a co-producer in Ableton Live 12.4 Suite on Windows. Claude plans and 
 | `engine/` | Music engine (Python, standard library only): theory, rhythm, parts, critic. Design in `docs/music-engine-plan.md` |
 | `harness/` | Loop orchestrator (`loop.py`) and the Live guard (`liveguard.py`) |
 | `thumbprints/<Set>/` | Sound thumbprints of the user's own tracks (`thumbprints.json`, `ANALYSIS.md`). These are the targets for scoring |
-| `live/` | Scratch sets (`SCRATCH *.als`) |
 | `docs/` | Bridge protocol, research, build log |
 | `runs/` | Loop round logs (not in git) |
+
+Live sets and audio stay outside the repo, on F:. The scratch set is `F:\AIMusic\SCRATCH Claude Project\SCRATCH Claude.als`, and new Live projects go under `F:\AIMusic\`. Recordings land in each project's `Samples\Recorded`. F: is nearly full, so delete loop recordings when a loop ends.
 
 ## How Live is reached
 

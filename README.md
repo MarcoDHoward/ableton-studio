@@ -14,5 +14,5 @@ See `CLAUDE.md` for the rules Claude follows here, and `docs/` for the bridge pr
 
 1. Install AbletonOSC and the AbletonMCP Remote Script into the Live User Library. Select them in Control Surface slots 2 and 3 with Input/Output set to None. Slot 1 stays MiniLab_3.
 2. Build the CLI: `scripts/setup.ps1`. Install AbletonPPExtras with `cli/ableton-pp-cli.exe scripts install --yes`, then select it in slot 4.
-3. Save an empty set as `live/SCRATCH Claude.als`. Claude only writes freely in sets whose name starts with `SCRATCH`.
+3. Save an empty set as `F:\AIMusic\SCRATCH Claude Project\SCRATCH Claude.als`. Live sets stay out of the repo. Claude only writes freely in sets whose name starts with `SCRATCH`.
 4. Install the analysis packages: `pip install numpy scipy matplotlib`.

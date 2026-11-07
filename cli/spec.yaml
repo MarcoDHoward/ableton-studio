@@ -1,0 +1,2151 @@
+# SYNTHETIC internal spec: virtual REST surface for Ableton Live 12.
+# NOT a real HTTP API. Every path is routed by the hand-written
+# internal/client/ableton_router.go to one of three local Remote Scripts:
+#   - AbletonOSC (OSC over UDP 127.0.0.1:11000, replies on 11001)  [primary]
+#   - AbletonMCP Remote Script (JSON over TCP 127.0.0.1:9877)       [secondary]
+#   - AbletonPPExtras, our own script (JSON over TCP 127.0.0.1:9878)
+# Path parameters {track}, {scene}, {device} and {param} accept a name or a
+# 1-based number; {slot} and {clip} are 1-based numbers.
+name: ableton
+display_name: Ableton Live
+description: "Control a running Ableton Live set from the terminal"
+cli_description: "Control Ableton Live from the terminal by track and device name, with backups for note edits and a journal of every change."
+version: "0.1.0"
+category: media-and-entertainment
+base_url: "osc://127.0.0.1:11000"
+health_check_path: "/health"
+auth:
+  type: none
+
+learn:
+  entity_lookup_seeds:
+    device:
+      - canonical: EQ Eight
+        aliases: [eq8, eq 8, eq]
+      - canonical: Glue Compressor
+        aliases: [glue, glue comp, bus compressor]
+      - canonical: Compressor
+        aliases: [comp]
+      - canonical: Auto Filter
+        aliases: [autofilter, filter]
+      - canonical: Echo
+        aliases: [tape echo, dub echo]
+      - canonical: Delay
+        aliases: [simple delay, ping pong]
+      - canonical: Reverb
+        aliases: [verb, hall reverb]
+      - canonical: Hybrid Reverb
+        aliases: [hybrid verb]
+      - canonical: Utility
+        aliases: [util, gain utility]
+      - canonical: Saturator
+        aliases: [sat, saturation]
+      - canonical: Drum Rack
+        aliases: [drums rack, drum kit]
+      - canonical: Drift
+        aliases: [drift synth]
+      - canonical: Wavetable
+        aliases: [wt]
+      - canonical: Operator
+        aliases: [fm synth]
+      - canonical: Simpler
+        aliases: [sampler simple]
+      - canonical: Electric
+        aliases: [electric piano, rhodes, epiano]
+  synonyms:
+    "bpm": "tempo"
+    "locators": "cue points"
+    "fader": "volume"
+
+extra_commands:
+  - name: tempo
+    args: "[bpm]"
+    description: "Show the tempo, or set it to a BPM between 20 and 999"
+  - name: watch
+    args: "<what>..."
+    description: "Stream live changes (tempo, playing, beat, selection, a track's mixer, a parameter) as NDJSON"
+  - name: notes replace
+    args: "<track> <slot>"
+    description: "Overwrite a clip's notes from JSON with an automatic backup and read-back check"
+  - name: notes restore
+    args: "<backup-id>"
+    description: "Put back a clip's notes from a backup (see notes backups); --track/--slot send it elsewhere"
+  - name: notes backups
+    description: "List saved note backups (filter with --track, --slot, --limit)"
+  - name: device add
+    args: "<track> <name>"
+    description: "Load an instrument or effect by its browser name, no URI needed"
+  - name: arrangement build
+    description: "Lay out a song in the Arrangement from Session scenes, with a locator per section"
+  - name: mix save
+    args: "<name>"
+    description: "Save every track's volume, pan, mute, solo and sends under a name"
+  - name: mix recall
+    args: "<name>"
+    description: "Restore a saved mixer state by track name"
+  - name: mix list
+    description: "List saved mixer states"
+  - name: journal list
+    description: "List changes this CLI made, with before and after values"
+  - name: journal revert
+    args: "[id...]"
+    description: "Roll back specific changes this CLI made, by id or with --last N"
+  - name: snapshot save
+    args: "<label>"
+    description: "Save the whole project's state locally under a label"
+  - name: snapshot list
+    description: "List saved project snapshots"
+  - name: snapshot diff
+    args: "<a> [b]"
+    description: "Compare two snapshots, or a snapshot against the open set with --live"
+  - name: chain save
+    args: "<track> <name>"
+    description: "Save a track's device chain with its parameter values"
+  - name: chain apply
+    args: "<name> <track>"
+    description: "Rebuild a saved device chain on a track"
+  - name: chain list
+    description: "List saved device chains"
+  - name: scripts install
+    description: "Show the plan for installing the AbletonPPExtras Remote Script into your Ableton User Library; --yes copies it (a differing __init__.py is kept as .bak)"
+
+resources:
+  status:
+    description: "Session overview: tempo, signature, transport and every track"
+    endpoints:
+      get:
+        method: GET
+        path: "/status"
+        data_source_strategy: live
+        description: "Show tempo, time signature, play state, loop and every track with its mixer state"
+        response:
+          type: object
+          item: SessionStatus
+
+  play:
+    description: "Start playback"
+    endpoints:
+      start:
+        method: POST
+        path: "/transport/play"
+        data_source_strategy: live
+        description: "Start Live's transport from the current position"
+        response:
+          type: object
+          item: Ack
+
+  stop:
+    description: "Stop playback"
+    endpoints:
+      now:
+        method: POST
+        path: "/transport/stop"
+        data_source_strategy: live
+        description: "Stop Live's transport"
+        response:
+          type: object
+          item: Ack
+
+  undo:
+    description: "Undo the last change in Live"
+    endpoints:
+      last:
+        method: POST
+        path: "/song/undo"
+        data_source_strategy: live
+        description: "Undo the last operation in Live's undo history (includes your own mouse edits)"
+        response:
+          type: object
+          item: Ack
+
+  redo:
+    description: "Redo the last undone change in Live"
+    endpoints:
+      last:
+        method: POST
+        path: "/song/redo"
+        data_source_strategy: live
+        description: "Redo the last undone operation"
+        response:
+          type: object
+          item: Ack
+
+  song:
+    description: "Song-level settings and transport actions"
+    endpoints:
+      get:
+        method: GET
+        path: "/song/props/{prop}"
+        data_source_strategy: live
+        description: "Read a song property"
+        params:
+          - name: prop
+            type: string
+            positional: true
+            required: true
+            description: "Song property name"
+            enum: [tempo, metronome, loop, loop_start, loop_length, signature_numerator, signature_denominator, groove_amount, clip_trigger_quantization, midi_recording_quantization, record_mode, arrangement_overdub, session_record, punch_in, punch_out, back_to_arranger, nudge_up, nudge_down, current_song_time, song_length, is_playing, can_undo, can_redo, root_note, scale_name]
+            example: metronome
+        response:
+          type: object
+          item: PropValue
+      set:
+        method: PUT
+        path: "/song/props/{prop}"
+        data_source_strategy: live
+        description: "Change a song property (the change is journaled)"
+        params:
+          - name: prop
+            type: string
+            positional: true
+            required: true
+            description: "Song property name"
+            enum: [tempo, metronome, loop, loop_start, loop_length, signature_numerator, signature_denominator, groove_amount, clip_trigger_quantization, midi_recording_quantization, record_mode, arrangement_overdub, session_record, punch_in, punch_out, back_to_arranger, nudge_up, nudge_down, current_song_time, root_note, scale_name]
+            example: metronome
+        body:
+          - name: value
+            type: string
+            required: true
+            description: "New value: a number, on/off, or a quantization name such as 1/4"
+            example: "on"
+        response:
+          type: object
+          item: PropChange
+      continue:
+        method: POST
+        path: "/song/continue"
+        data_source_strategy: live
+        description: "Resume playback from where it stopped"
+        response:
+          type: object
+          item: Ack
+      stop-clips:
+        method: POST
+        path: "/song/stop-clips"
+        data_source_strategy: live
+        description: "Stop all playing clips, or only one track's clips with --track"
+        params:
+          - name: track
+            in: query
+            type: string
+            description: "Only stop clips on this track (name or number)"
+        response:
+          type: object
+          item: Ack
+      seek:
+        method: POST
+        path: "/song/seek"
+        data_source_strategy: live
+        description: "Move the playhead to a beat or bar.beat position, or jump by a number of beats"
+        body:
+          - name: to
+            type: string
+            description: "Target position as beats (64) or bar.beat (17.1)"
+            example: "17.1"
+          - name: by
+            type: float
+            description: "Jump relative to the current position, in beats (negative jumps back)"
+        response:
+          type: object
+          item: PropChange
+      tap-tempo:
+        method: POST
+        path: "/song/tap-tempo"
+        data_source_strategy: live
+        description: "Tap the Tap Tempo button once"
+        response:
+          type: object
+          item: Ack
+
+  record:
+    description: "Recording controls"
+    endpoints:
+      session:
+        method: PUT
+        path: "/record/session"
+        data_source_strategy: live
+        description: "Turn Session record on or off"
+        body:
+          - name: on
+            type: bool
+            required: true
+            description: "true to arm Session record, false to disarm"
+        response:
+          type: object
+          item: PropChange
+      trigger:
+        method: POST
+        path: "/record/trigger"
+        data_source_strategy: live
+        description: "Trigger Session record (like pressing the Session record button)"
+        response:
+          type: object
+          item: Ack
+      capture:
+        method: POST
+        path: "/record/capture"
+        data_source_strategy: live
+        description: "Capture MIDI you just played into a new clip"
+        response:
+          type: object
+          item: Ack
+
+  locator:
+    description: "Arrangement locators (cue points)"
+    endpoints:
+      list:
+        method: GET
+        path: "/locators"
+        data_source_strategy: live
+        description: "List locators with their beat and bar.beat positions"
+        response:
+          type: array
+          item: Locator
+      add:
+        method: POST
+        path: "/locators"
+        data_source_strategy: live
+        description: "Add a named locator at a beat or bar.beat (renames an existing one at the same spot)"
+        body:
+          - name: name
+            type: string
+            required: true
+            description: "Locator name"
+            example: Drop
+          - name: at
+            type: string
+            required: true
+            description: "Position as beats (64) or bar.beat (17.1)"
+            example: "17.1"
+        response:
+          type: object
+          item: Locator
+      jump:
+        method: POST
+        path: "/locators/{locator}/jump"
+        data_source_strategy: live
+        description: "Move the playhead to a locator, by name or number"
+        params:
+          - name: locator
+            type: string
+            positional: true
+            required: true
+            description: "Locator name or 1-based number"
+            example: Drop
+        response:
+          type: object
+          item: Ack
+      next:
+        method: POST
+        path: "/locators/next"
+        data_source_strategy: live
+        description: "Jump to the next locator"
+        response:
+          type: object
+          item: Ack
+      prev:
+        method: POST
+        path: "/locators/prev"
+        data_source_strategy: live
+        description: "Jump to the previous locator"
+        response:
+          type: object
+          item: Ack
+      rename:
+        method: PUT
+        path: "/locators/{locator}"
+        data_source_strategy: live
+        description: "Rename a locator"
+        params:
+          - name: locator
+            type: string
+            positional: true
+            required: true
+            description: "Locator name or 1-based number"
+            example: "1"
+        body:
+          - name: name
+            type: string
+            required: true
+            description: "New locator name"
+            example: Verse
+        response:
+          type: object
+          item: Locator
+      delete:
+        method: DELETE
+        path: "/locators/{locator}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete a locator"
+        params:
+          - name: locator
+            type: string
+            positional: true
+            required: true
+            description: "Locator name or 1-based number"
+            example: Drop
+        response:
+          type: object
+          item: Ack
+
+  tracks:
+    description: "Every track with its mixer state"
+    endpoints:
+      list:
+        method: GET
+        path: "/tracks"
+        data_source_strategy: live
+        id_field: number
+        description: "List every track: number, name, type, volume (0-1 fader, plus dB with AbletonPPExtras), pan, mute, solo, arm and sends"
+        response:
+          type: array
+          item: Track
+
+  track:
+    description: "Work with one track: mixer, routing, create, delete"
+    endpoints:
+      get:
+        method: GET
+        path: "/tracks/{track}"
+        data_source_strategy: live
+        description: "Show a track's mixer state, devices and clip slots"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: TrackDetail
+      create:
+        method: POST
+        path: "/tracks"
+        data_source_strategy: live
+        description: "Create a MIDI, audio or return track"
+        body:
+          - name: type
+            type: string
+            required: true
+            enum: [midi, audio, return]
+            description: "Track type"
+            example: midi
+          - name: name
+            type: string
+            description: "Name for the new track"
+            example: Bass
+          - name: index
+            type: int
+            description: "1-based position to insert at (default: end)"
+        response:
+          type: object
+          item: Track
+      delete:
+        method: DELETE
+        path: "/tracks/{track}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete a track"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "4"
+        response:
+          type: object
+          item: Ack
+      duplicate:
+        method: POST
+        path: "/tracks/{track}/duplicate"
+        data_source_strategy: live
+        description: "Duplicate a track with its devices and clips"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      rename:
+        method: PUT
+        path: "/tracks/{track}/name"
+        data_source_strategy: live
+        description: "Rename a track"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: name
+            type: string
+            required: true
+            description: "New track name"
+            example: Bass
+        response:
+          type: object
+          item: PropChange
+      color:
+        method: PUT
+        path: "/tracks/{track}/color"
+        data_source_strategy: live
+        description: "Set a track's color from Live's palette (0-69)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: index
+            type: int
+            required: true
+            description: "Live color palette index, 0-69"
+            example: "12"
+        response:
+          type: object
+          item: PropChange
+      volume:
+        method: PUT
+        path: "/tracks/{track}/volume"
+        data_source_strategy: live
+        description: "Set a track's volume as a 0-1 fader value, or in dB (-inf to +6; --db needs AbletonPPExtras)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: db
+            type: float
+            description: "Volume in dB, e.g. -6"
+          - name: fader
+            type: float
+            description: "Raw fader position 0-1 (0.85 = 0 dB)"
+        response:
+          type: object
+          item: PropChange
+      pan:
+        method: PUT
+        path: "/tracks/{track}/pan"
+        data_source_strategy: live
+        description: "Set a track's pan from -1 (left) to 1 (right)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: value
+            type: float
+            required: true
+            description: "Pan, -1 to 1"
+            example: "0"
+        response:
+          type: object
+          item: PropChange
+      mute:
+        method: PUT
+        path: "/tracks/{track}/mute"
+        data_source_strategy: live
+        description: "Mute or unmute a track"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: on
+            type: bool
+            required: true
+            description: "true to mute, false to unmute"
+        response:
+          type: object
+          item: PropChange
+      solo:
+        method: PUT
+        path: "/tracks/{track}/solo"
+        data_source_strategy: live
+        description: "Solo or unsolo a track"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: on
+            type: bool
+            required: true
+            description: "true to solo, false to unsolo"
+        response:
+          type: object
+          item: PropChange
+      arm:
+        method: PUT
+        path: "/tracks/{track}/arm"
+        data_source_strategy: live
+        description: "Arm or disarm a track for recording"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: on
+            type: bool
+            required: true
+            description: "true to arm, false to disarm"
+        response:
+          type: object
+          item: PropChange
+      send:
+        method: PUT
+        path: "/tracks/{track}/sends/{send}"
+        data_source_strategy: live
+        description: "Set a send level (send A = 1) as a 0-1 knob value"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: send
+            type: string
+            positional: true
+            required: true
+            description: "Send letter (A, B, ...) or 1-based number"
+            example: A
+        body:
+          - name: value
+            type: float
+            required: true
+            description: "Send level 0-1"
+            example: "0.5"
+        response:
+          type: object
+          item: PropChange
+      routing:
+        method: GET
+        path: "/tracks/{track}/routing"
+        data_source_strategy: live
+        description: "Show a track's input/output routing, the available routes and its monitoring state"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: Routing
+      set-routing:
+        method: PUT
+        path: "/tracks/{track}/routing"
+        data_source_strategy: live
+        description: "Change a track's input/output routing or monitoring"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: input_type
+            type: string
+            description: "Input routing type, e.g. All Ins"
+          - name: input_channel
+            type: string
+            description: "Input routing channel"
+          - name: output_type
+            type: string
+            description: "Output routing type, e.g. Main"
+          - name: output_channel
+            type: string
+            description: "Output routing channel"
+          - name: monitoring
+            type: string
+            enum: [in, auto, off]
+            description: "Monitoring state"
+        response:
+          type: object
+          item: Routing
+      meter:
+        method: GET
+        path: "/meters"
+        data_source_strategy: live
+        description: "Current output levels for every track"
+        response:
+          type: array
+          item: Meter
+
+  clips:
+    description: "The Session clip grid"
+    endpoints:
+      grid:
+        method: GET
+        path: "/clips"
+        data_source_strategy: live
+        description: "Show every track's clip slots with clip names and lengths"
+        response:
+          type: array
+          item: ClipSlot
+
+  clip:
+    description: "Work with Session clips"
+    endpoints:
+      get:
+        method: GET
+        path: "/clips/{track}/{slot}"
+        data_source_strategy: live
+        description: "Show all properties of a Session clip"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot (scene row) number"
+            example: "1"
+        response:
+          type: object
+          item: Clip
+      set:
+        method: PUT
+        path: "/clips/{track}/{slot}/props/{prop}"
+        data_source_strategy: live
+        description: "Change one clip property (the change is journaled)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+          - name: prop
+            type: string
+            positional: true
+            required: true
+            enum: [name, color_index, gain, pitch_coarse, pitch_fine, loop_start, loop_end, start_marker, end_marker, warping, warp_mode, launch_mode, launch_quantization, legato, muted, ram_mode, velocity_amount]
+            description: "Clip property name"
+            example: name
+        body:
+          - name: value
+            type: string
+            required: true
+            description: "New value (number, on/off, or an enum name such as complex or 1/4)"
+            example: Verse Bass
+        response:
+          type: object
+          item: PropChange
+      create:
+        method: POST
+        path: "/clips/{track}/{slot}"
+        data_source_strategy: live
+        description: "Create an empty MIDI clip in a slot"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        body:
+          - name: bars
+            type: float
+            description: "Length in bars (default 4)"
+            default: 4
+          - name: name
+            type: string
+            description: "Clip name"
+        response:
+          type: object
+          item: Clip
+      delete:
+        method: DELETE
+        path: "/clips/{track}/{slot}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete the clip in a slot"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "2"
+        response:
+          type: object
+          item: Ack
+      duplicate:
+        method: POST
+        path: "/clips/{track}/{slot}/duplicate"
+        data_source_strategy: live
+        description: "Copy a clip to an empty slot"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        body:
+          - name: to_track
+            type: string
+            description: "Destination track (default: same track)"
+          - name: to_slot
+            type: int
+            required: true
+            description: "Destination 1-based slot (must be empty)"
+            example: "2"
+        response:
+          type: object
+          item: Ack
+      fire:
+        method: POST
+        path: "/clips/{track}/{slot}/fire"
+        data_source_strategy: live
+        description: "Launch a clip"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      stop:
+        method: POST
+        path: "/clips/{track}/{slot}/stop"
+        data_source_strategy: live
+        description: "Stop a playing clip"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      duplicate-loop:
+        method: POST
+        path: "/clips/{track}/{slot}/duplicate-loop"
+        data_source_strategy: live
+        description: "Double a clip's loop, copying its notes into the new half"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      to-arrangement:
+        method: POST
+        path: "/clips/{track}/{slot}/to-arrangement"
+        data_source_strategy: live
+        description: "Copy a Session clip onto the same track in the Arrangement at a position"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        body:
+          - name: at
+            type: string
+            required: true
+            description: "Arrangement position as beats (32) or bar.beat (9.1)"
+            example: "9.1"
+        response:
+          type: object
+          item: Ack
+      import-audio:
+        method: POST
+        path: "/clips/{track}/{slot}/import-audio"
+        data_source_strategy: live
+        description: "Create an audio clip from a local audio file (Live 12.0.5 or newer)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Audio track name or 1-based number"
+            example: "3"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        body:
+          - name: file
+            type: string
+            required: true
+            description: "Absolute path to a local .wav, .aif, .mp3 or .flac file (network paths are refused)"
+            example: "C:\\Samples\\kick.wav"
+        response:
+          type: object
+          item: Ack
+
+  notes:
+    description: "MIDI notes in Session clips"
+    endpoints:
+      get:
+        method: GET
+        path: "/notes/{track}/{slot}"
+        data_source_strategy: live
+        description: "Read every note in a MIDI clip as JSON (pitch, start, duration, velocity, mute)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        response:
+          type: array
+          item: Note
+      add:
+        method: POST
+        path: "/notes/{track}/{slot}"
+        data_source_strategy: live
+        description: "Add notes to a MIDI clip from JSON (keeps existing notes)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+        body:
+          properties:
+            notes:
+              type: array
+              required: true
+              description: "Notes to add: [{pitch, start, duration, velocity, mute}] with start and duration in beats"
+              items:
+                type: object
+                properties:
+                  pitch:
+                    type: int
+                  start:
+                    type: float
+                  duration:
+                    type: float
+                  velocity:
+                    type: int
+                  mute:
+                    type: bool
+        response:
+          type: object
+          item: Ack
+      clear:
+        method: DELETE
+        path: "/notes/{track}/{slot}"
+        destructive: true
+        data_source_strategy: live
+        description: "Remove notes from a MIDI clip, optionally only within a pitch and time range"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+          - name: pitch_from
+            in: query
+            type: int
+            description: "Lowest MIDI pitch to remove (default 0)"
+          - name: pitch_to
+            in: query
+            type: int
+            description: "Highest MIDI pitch to remove (default 127)"
+          - name: time_from
+            in: query
+            type: float
+            description: "Start of the time range in beats (default 0)"
+          - name: time_to
+            in: query
+            type: float
+            description: "End of the time range in beats (default: clip end)"
+        response:
+          type: object
+          item: Ack
+
+  scene:
+    description: "Session scenes"
+    endpoints:
+      list:
+        method: GET
+        path: "/scenes"
+        data_source_strategy: live
+        description: "List scenes with name, tempo, time signature and color"
+        response:
+          type: array
+          item: Scene
+      fire:
+        method: POST
+        path: "/scenes/{scene}/fire"
+        data_source_strategy: live
+        description: "Launch a scene"
+        params:
+          - name: scene
+            type: string
+            positional: true
+            required: true
+            description: "Scene name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      fire-selected:
+        method: POST
+        path: "/scenes/selected/fire"
+        data_source_strategy: live
+        description: "Launch the selected scene and select the next one"
+        response:
+          type: object
+          item: Ack
+      create:
+        method: POST
+        path: "/scenes"
+        data_source_strategy: live
+        description: "Create a scene"
+        body:
+          - name: name
+            type: string
+            description: "Scene name"
+            example: Dub
+          - name: index
+            type: int
+            description: "1-based position (default: end)"
+        response:
+          type: object
+          item: Scene
+      delete:
+        method: DELETE
+        path: "/scenes/{scene}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete a scene"
+        params:
+          - name: scene
+            type: string
+            positional: true
+            required: true
+            description: "Scene name or 1-based number"
+            example: "8"
+        response:
+          type: object
+          item: Ack
+      duplicate:
+        method: POST
+        path: "/scenes/{scene}/duplicate"
+        data_source_strategy: live
+        description: "Duplicate a scene with its clips"
+        params:
+          - name: scene
+            type: string
+            positional: true
+            required: true
+            description: "Scene name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+      set:
+        method: PUT
+        path: "/scenes/{scene}/props/{prop}"
+        data_source_strategy: live
+        description: "Change a scene's name, color, tempo or time signature"
+        params:
+          - name: scene
+            type: string
+            positional: true
+            required: true
+            description: "Scene name or 1-based number"
+            example: "1"
+          - name: prop
+            type: string
+            positional: true
+            required: true
+            enum: [name, color_index, tempo, tempo_enabled, time_signature_numerator, time_signature_denominator, time_signature_enabled]
+            description: "Scene property"
+            example: name
+        body:
+          - name: value
+            type: string
+            required: true
+            description: "New value"
+            example: Intro
+        response:
+          type: object
+          item: PropChange
+
+  view:
+    description: "What is selected and shown in Live"
+    endpoints:
+      get:
+        method: GET
+        path: "/view/selection"
+        data_source_strategy: live
+        description: "Show the selected track, scene, clip and device"
+        response:
+          type: object
+          item: Selection
+      select:
+        method: PUT
+        path: "/view/selection"
+        data_source_strategy: live
+        description: "Select a track, scene, clip or device"
+        body:
+          - name: track
+            type: string
+            description: "Track name or 1-based number"
+          - name: scene
+            type: string
+            description: "Scene name or 1-based number"
+          - name: slot
+            type: int
+            description: "1-based clip slot (with --track selects that clip)"
+          - name: device
+            type: string
+            description: "Device name or 1-based number on --track"
+        response:
+          type: object
+          item: Selection
+      show:
+        method: PUT
+        path: "/view/main"
+        data_source_strategy: live
+        description: "Switch Live's main window to the Arrangement view (switching to Session is not supported)"
+        body:
+          - name: view
+            type: string
+            required: true
+            enum: [arrangement, session]
+            description: "Which view to show"
+            example: arrangement
+        response:
+          type: object
+          item: Ack
+
+  device:
+    description: "Devices on a track"
+    endpoints:
+      list:
+        method: GET
+        path: "/tracks/{track}/devices"
+        data_source_strategy: live
+        description: "List a track's devices with their type and class"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        response:
+          type: array
+          item: Device
+      load:
+        method: POST
+        path: "/tracks/{track}/devices"
+        data_source_strategy: live
+        description: "Load an instrument, effect or plugin onto a track by its browser URI"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        body:
+          - name: uri
+            type: string
+            required: true
+            description: "Browser URI from 'browser list' or 'browser tree', e.g. query:Synths#Drift"
+            example: "query:Synths#Drift"
+        response:
+          type: object
+          item: Ack
+      enable:
+        method: PUT
+        path: "/tracks/{track}/devices/{device}/enable"
+        data_source_strategy: live
+        description: "Turn a device on"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: PropChange
+      disable:
+        method: PUT
+        path: "/tracks/{track}/devices/{device}/disable"
+        data_source_strategy: live
+        description: "Turn a device off (bypass)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: PropChange
+      delete:
+        method: DELETE
+        path: "/tracks/{track}/devices/{device}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete a device from a track (needs the AbletonPPExtras script)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "2"
+        response:
+          type: object
+          item: Ack
+
+  param:
+    description: "Device parameters"
+    endpoints:
+      list:
+        method: GET
+        path: "/tracks/{track}/devices/{device}/params"
+        data_source_strategy: live
+        description: "List a device's parameters with value, range and display text"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+        response:
+          type: array
+          item: Parameter
+      set:
+        method: PUT
+        path: "/tracks/{track}/devices/{device}/params/{param}"
+        data_source_strategy: live
+        description: "Set a device parameter by name or number (range-checked and journaled)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+          - name: param
+            type: string
+            positional: true
+            required: true
+            description: "Parameter name or 1-based number"
+            example: "2"
+        body:
+          - name: value
+            type: float
+            required: true
+            description: "New value within the parameter's min..max"
+            example: "0.5"
+        response:
+          type: object
+          item: PropChange
+
+  midimap:
+    description: "Map a MIDI CC to a device parameter"
+    endpoints:
+      cc:
+        method: POST
+        path: "/midimap"
+        data_source_strategy: live
+        description: "Make a MIDI CC control a device parameter"
+        body:
+          - name: track
+            type: string
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+          - name: param
+            type: string
+            required: true
+            description: "Parameter name or 1-based number"
+            example: "2"
+          - name: channel
+            type: int
+            required: true
+            description: "MIDI channel 1-16"
+            example: "1"
+          - name: cc
+            type: int
+            required: true
+            description: "Controller number 0-127"
+            example: "74"
+        response:
+          type: object
+          item: Ack
+
+  browser:
+    description: "Live's browser (instruments, sounds, drums, effects, plugins)"
+    endpoints:
+      tree:
+        method: GET
+        path: "/browser/tree"
+        data_source_strategy: live
+        description: "Show the browser's top-level categories and their folders"
+        params:
+          - name: category
+            in: query
+            type: string
+            enum: [all, instruments, sounds, drums, audio_effects, midi_effects, plugins]
+            default: all
+            description: "Browser category"
+        response:
+          type: array
+          item: BrowserItem
+      list:
+        method: GET
+        path: "/browser/items"
+        data_source_strategy: live
+        description: "List the items inside a browser folder, e.g. instruments or drums/Kits"
+        params:
+          - name: path
+            in: query
+            type: string
+            required: true
+            description: "Browser path starting with a category, e.g. instruments, audio_effects or drums"
+            example: instruments
+        response:
+          type: array
+          item: BrowserItem
+      index:
+        method: GET
+        path: "/browser/index"
+        syncable: true
+        id_field: uri
+        description: "Every loadable browser item (two levels deep), for 'sync' and 'device add'"
+        response:
+          type: array
+          item: BrowserItem
+
+  drums:
+    description: "Drum Racks"
+    endpoints:
+      load:
+        method: POST
+        path: "/tracks/{track}/drum-kit"
+        data_source_strategy: live
+        description: "Load a Drum Rack and a kit from the browser onto a track"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "2"
+        body:
+          - name: kit
+            type: string
+            required: true
+            description: "Kit path inside the browser's drums category, e.g. drums/Kit-Core 909"
+            example: "drums/Kit-Core 909"
+          - name: rack_uri
+            type: string
+            description: "Drum Rack URI (default: Live's empty Drum Rack)"
+        response:
+          type: object
+          item: Ack
+      pads:
+        method: GET
+        path: "/tracks/{track}/devices/{device}/pads"
+        data_source_strategy: live
+        description: "List a Drum Rack's filled pads (needs the AbletonPPExtras script)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "2"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Drum Rack name or 1-based number"
+            example: "1"
+        response:
+          type: array
+          item: DrumPad
+
+  arrangement:
+    description: "Clips on the Arrangement timeline"
+    endpoints:
+      clips:
+        method: GET
+        path: "/arrangement/{track}/clips"
+        data_source_strategy: live
+        description: "List a track's Arrangement clips with start, end and bar.beat positions"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+        response:
+          type: array
+          item: ArrangementClip
+      add-clip:
+        method: POST
+        path: "/arrangement/{track}/clips"
+        data_source_strategy: live
+        description: "Create an empty MIDI clip on the Arrangement timeline (needs AbletonPPExtras)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "MIDI track name or 1-based number"
+            example: "1"
+        body:
+          - name: at
+            type: string
+            required: true
+            description: "Start position as beats (32) or bar.beat (9.1)"
+            example: "9.1"
+          - name: bars
+            type: float
+            description: "Length in bars (default 4)"
+            default: 4
+        response:
+          type: object
+          item: ArrangementClip
+      delete-clip:
+        method: DELETE
+        path: "/arrangement/{track}/clips/{clip}"
+        destructive: true
+        data_source_strategy: live
+        description: "Delete an Arrangement clip (needs AbletonPPExtras)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: clip
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip number from 'arrangement clips'"
+            example: "1"
+        response:
+          type: object
+          item: Ack
+
+  rack:
+    description: "Instrument, Audio Effect and Drum Racks"
+    endpoints:
+      inspect:
+        method: GET
+        path: "/tracks/{track}/devices/{device}/rack"
+        data_source_strategy: live
+        description: "Show a rack's nested devices and which macros are mapped"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Rack name or 1-based number"
+            example: "1"
+        response:
+          type: object
+          item: RackInfo
+      chains:
+        method: GET
+        path: "/tracks/{track}/devices/{device}/chains"
+        data_source_strategy: live
+        description: "List a rack's chains with volume, pan, mute and solo (needs AbletonPPExtras)"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Rack name or 1-based number"
+            example: "1"
+        response:
+          type: array
+          item: RackChain
+      map-macro:
+        method: POST
+        path: "/tracks/{track}/devices/{device}/rack/map-macro"
+        data_source_strategy: live
+        description: "Map every nested device's Dry/Wet (or Mix/Amount) to Macro 1 and name it"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Rack name or 1-based number"
+            example: "1"
+        body:
+          - name: name
+            type: string
+            description: "Macro label (default Magnitude)"
+            default: Magnitude
+        response:
+          type: object
+          item: Ack
+
+  automation:
+    description: "Clip automation envelopes (needs AbletonPPExtras)"
+    endpoints:
+      get:
+        method: GET
+        path: "/automation/{track}/{slot}/{device}/{param}"
+        data_source_strategy: live
+        description: "Read a clip's automation envelope for a device parameter"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+          - name: param
+            type: string
+            positional: true
+            required: true
+            description: "Parameter name or 1-based number"
+            example: "2"
+          - name: step
+            in: query
+            type: float
+            default: 0.25
+            description: "Sampling step in beats"
+        response:
+          type: array
+          item: AutomationPoint
+      set:
+        method: PUT
+        path: "/automation/{track}/{slot}/{device}/{param}"
+        data_source_strategy: live
+        description: "Write automation points into a clip's envelope from JSON"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+          - name: param
+            type: string
+            positional: true
+            required: true
+            description: "Parameter name or 1-based number"
+            example: "2"
+        body:
+          properties:
+            points:
+              type: array
+              required: true
+              description: "Points to write: [{time, value, duration}] with time and duration in beats"
+              items:
+                type: object
+                properties:
+                  time:
+                    type: float
+                  value:
+                    type: float
+                  duration:
+                    type: float
+        response:
+          type: object
+          item: Ack
+      clear:
+        method: DELETE
+        path: "/automation/{track}/{slot}/{device}/{param}"
+        destructive: true
+        data_source_strategy: live
+        description: "Clear a clip's automation envelope for a device parameter"
+        params:
+          - name: track
+            type: string
+            positional: true
+            required: true
+            description: "Track name or 1-based number"
+            example: "1"
+          - name: slot
+            type: int
+            positional: true
+            required: true
+            description: "1-based clip slot number"
+            example: "1"
+          - name: device
+            type: string
+            positional: true
+            required: true
+            description: "Device name or 1-based number"
+            example: "1"
+          - name: param
+            type: string
+            positional: true
+            required: true
+            description: "Parameter name or 1-based number"
+            example: "2"
+        response:
+          type: object
+          item: Ack
+
+  snapshot:
+    description: "Whole-project snapshots"
+    endpoints:
+      get:
+        method: GET
+        path: "/snapshot"
+        data_source_strategy: live
+        description: "List stored project snapshots (same as 'snapshot list'); Live is not contacted. 'snapshot save' reads the set"
+        params:
+          - name: notes
+            in: query
+            type: bool
+            default: true
+            description: "Include MIDI notes"
+          - name: params
+            in: query
+            type: bool
+            default: true
+            description: "Include device parameter values"
+        response:
+          type: object
+          item: Snapshot
+
+  message:
+    description: "Show a message in Live's status bar"
+    endpoints:
+      show:
+        method: POST
+        path: "/message"
+        data_source_strategy: live
+        description: "Show a short message in Live's status bar"
+        body:
+          - name: text
+            type: string
+            required: true
+            description: "Message text"
+            example: "Mixdown in 5"
+        response:
+          type: object
+          item: Ack
+
+  health:
+    description: "Remote Script health"
+    endpoints:
+      check:
+        method: GET
+        path: "/health"
+        data_source_strategy: live
+        description: "Check which Remote Scripts answer and their versions"
+        response:
+          type: object
+          item: Health
+
+types:
+  Ack:
+    fields:
+      - name: ok
+        type: bool
+      - name: action
+        type: string
+      - name: target
+        type: string
+      - name: detail
+        type: string
+  PropValue:
+    fields:
+      - name: property
+        type: string
+      - name: value
+        type: string
+  PropChange:
+    fields:
+      - name: target
+        type: string
+      - name: property
+        type: string
+      - name: before
+        type: string
+      - name: after
+        type: string
+      - name: journal_id
+        type: int
+  SessionStatus:
+    fields:
+      - name: tempo
+        type: float
+      - name: signature
+        type: string
+      - name: is_playing
+        type: bool
+      - name: position
+        type: string
+      - name: loop
+        type: bool
+      - name: track_count
+        type: int
+      - name: scene_count
+        type: int
+      - name: return_count
+        type: int
+      - name: live_version
+        type: string
+  Track:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: type
+        type: string
+      - name: volume_db
+        type: float
+      - name: pan
+        type: float
+      - name: mute
+        type: bool
+      - name: solo
+        type: bool
+      - name: arm
+        type: bool
+      - name: sends
+        type: string
+  TrackDetail:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: type
+        type: string
+      - name: volume_db
+        type: float
+      - name: pan
+        type: float
+      - name: mute
+        type: bool
+      - name: solo
+        type: bool
+      - name: arm
+        type: bool
+      - name: devices
+        type: string
+      - name: clips
+        type: string
+  Routing:
+    fields:
+      - name: track
+        type: string
+      - name: input_type
+        type: string
+      - name: input_channel
+        type: string
+      - name: output_type
+        type: string
+      - name: output_channel
+        type: string
+      - name: monitoring
+        type: string
+      - name: available_inputs
+        type: string
+      - name: available_outputs
+        type: string
+  Meter:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: level
+        type: float
+      - name: left
+        type: float
+      - name: right
+        type: float
+  ClipSlot:
+    fields:
+      - name: track
+        type: string
+      - name: slot
+        type: int
+      - name: name
+        type: string
+      - name: bars
+        type: float
+  Clip:
+    fields:
+      - name: track
+        type: string
+      - name: slot
+        type: int
+      - name: name
+        type: string
+      - name: type
+        type: string
+      - name: length_beats
+        type: float
+      - name: loop_start
+        type: float
+      - name: loop_end
+        type: float
+      - name: is_playing
+        type: bool
+      - name: muted
+        type: bool
+  Note:
+    fields:
+      - name: pitch
+        type: int
+      - name: start
+        type: float
+      - name: duration
+        type: float
+      - name: velocity
+        type: int
+      - name: mute
+        type: bool
+  Scene:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: tempo
+        type: float
+      - name: tempo_enabled
+        type: bool
+      - name: signature
+        type: string
+  Selection:
+    fields:
+      - name: track
+        type: string
+      - name: scene
+        type: string
+      - name: clip
+        type: string
+      - name: device
+        type: string
+  Device:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: class_name
+        type: string
+      - name: type
+        type: string
+      - name: on
+        type: bool
+  Parameter:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: value
+        type: float
+      - name: display
+        type: string
+      - name: min
+        type: float
+      - name: max
+        type: float
+      - name: quantized
+        type: bool
+  BrowserItem:
+    fields:
+      - name: uri
+        type: string
+      - name: name
+        type: string
+      - name: path
+        type: string
+      - name: category
+        type: string
+      - name: is_folder
+        type: bool
+      - name: is_loadable
+        type: bool
+  DrumPad:
+    fields:
+      - name: note
+        type: int
+      - name: note_name
+        type: string
+      - name: name
+        type: string
+      - name: mute
+        type: bool
+      - name: solo
+        type: bool
+      - name: chains
+        type: int
+  ArrangementClip:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: start
+        type: float
+      - name: end
+        type: float
+      - name: position
+        type: string
+      - name: type
+        type: string
+  RackInfo:
+    fields:
+      - name: rack
+        type: string
+      - name: macros_mapped
+        type: string
+      - name: devices
+        type: string
+  RackChain:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: volume_db
+        type: float
+      - name: pan
+        type: float
+      - name: mute
+        type: bool
+      - name: solo
+        type: bool
+      - name: devices
+        type: string
+  Locator:
+    fields:
+      - name: number
+        type: int
+      - name: name
+        type: string
+      - name: beat
+        type: float
+      - name: position
+        type: string
+  AutomationPoint:
+    fields:
+      - name: time
+        type: float
+      - name: value
+        type: float
+  Snapshot:
+    fields:
+      - name: schema
+        type: string
+      - name: session
+        type: string
+      - name: tracks
+        type: string
+  Health:
+    fields:
+      - name: abletonosc
+        type: string
+      - name: abletonmcp
+        type: string
+      - name: abletonppextras
+        type: string
