@@ -1,0 +1,652 @@
+<title>ReggaeBuilder Phase Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: an engineering datasheet. One reading column, figures break wider; numbered sections follow the order the work happened. */
+:root {
+  --paper: #F3F4F1;
+  --panel: #FFFFFF;
+  --ink: #16191B;
+  --muted: #5B6469;
+  --rule: #D3D8D4;
+  --grid: #E3E7E3;
+  --before: #A9771C;
+  --after: #2448C2;
+  --sim: #8A4AAE;
+  --target: #16191B;
+  --good: #2C7A4B;
+  --warn: #A86A12;
+  --bad: #B0281F;
+  --s-acid: #2F7D6B;
+  --s-delay: #C25A33;
+  --s-lead: #7559B5;
+  --s-rest: #A3ABAF;
+  --shade: rgba(36, 72, 194, 0.07);
+  --display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1214; --panel: #161A1D; --ink: #E6E9EB; --muted: #9AA3A9; --rule: #2B3135; --grid: #22282C;
+    --before: #D8A847; --after: #86A0FF; --sim: #C990EA; --target: #E6E9EB;
+    --good: #5CC08A; --warn: #E0A54A; --bad: #F07A70;
+    --s-acid: #55B39C; --s-delay: #E8875F; --s-lead: #A68BE6; --s-rest: #5F686D;
+    --shade: rgba(134, 160, 255, 0.09);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1214; --panel: #161A1D; --ink: #E6E9EB; --muted: #9AA3A9; --rule: #2B3135; --grid: #22282C;
+  --before: #D8A847; --after: #86A0FF; --sim: #C990EA; --target: #E6E9EB;
+  --good: #5CC08A; --warn: #E0A54A; --bad: #F07A70;
+  --s-acid: #55B39C; --s-delay: #E8875F; --s-lead: #A68BE6; --s-rest: #5F686D;
+  --shade: rgba(134, 160, 255, 0.09);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--body); font-size: 17px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1060px; margin: 0 auto; display: grid; gap: 56px; }
+.col { max-width: 700px; }
+h1, h2, h3 { font-family: var(--display); font-stretch: 112%; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 6vw, 58px); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; }
+h3 { font-size: 19px; font-weight: 700; font-stretch: 100%; margin-top: 8px; }
+p { margin: 0; }
+.flow { display: grid; gap: 16px; }
+.eyebrow, .label, th, .num, code, .mono {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.eyebrow { font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 20px; line-height: 1.55; max-width: 700px; }
+code { font-size: 0.86em; background: var(--grid); padding: 1px 5px; border-radius: 3px; }
+a { color: var(--after); }
+header { display: grid; gap: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+
+/* key figures */
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.fig { padding: 16px 16px 14px 0; display: grid; gap: 4px; align-content: start; }
+.fig + .fig { padding-left: 16px; border-left: 1px solid var(--rule); }
+.fig .label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+.fig .val { font-family: var(--display); font-stretch: 100%; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig .val .from { color: var(--before); font-weight: 600; }
+.fig .val .arrow { color: var(--muted); font-weight: 500; margin: 0 4px; }
+.fig .val .to { color: var(--after); }
+.fig .sub { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .figs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fig:nth-child(3) { border-left: 0; padding-left: 0; } .fig:nth-child(n+3) { border-top: 1px solid var(--rule); } }
+
+/* sections */
+section { display: grid; gap: 22px; }
+.sec-head { display: grid; grid-template-columns: 56px 1fr; align-items: baseline; gap: 0 12px; }
+.sec-head .n { font-family: var(--mono); font-size: 14px; color: var(--muted); padding-top: 6px; }
+.sec-body { display: grid; gap: 22px; padding-left: 68px; }
+@media (max-width: 760px) { .sec-head { grid-template-columns: 1fr; } .sec-head .n { padding: 0; } .sec-body { padding-left: 0; } }
+
+.figure { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 18px 18px 14px; display: grid; gap: 10px; min-width: 0; }
+.figure .cap { font-size: 14.5px; color: var(--muted); line-height: 1.5; max-width: 760px; }
+.figure .cap b { color: var(--ink); font-weight: 600; }
+.figure .title { font-family: var(--display); font-stretch: 100%; font-weight: 700; font-size: 16px; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 600px; }
+.chart text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 3px; display: inline-block; border-radius: 2px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* correlation meter */
+.meter { display: grid; gap: 2px; min-width: 620px; }
+.mrow { display: grid; grid-template-columns: 92px 64px 1fr 132px; align-items: center; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--grid); }
+.mrow.head { border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.mrow .band { font-family: var(--mono); font-size: 13px; }
+.mrow .e { font-family: var(--mono); font-size: 12px; color: var(--muted); display: grid; gap: 3px; }
+.ebar { height: 4px; background: var(--s-rest); border-radius: 2px; }
+.track { position: relative; height: 22px; }
+.track .axis { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--grid); }
+.track .zero { position: absolute; top: 3px; height: 16px; width: 1px; background: var(--rule); }
+.track .tgt { position: absolute; top: 1px; height: 20px; width: 2px; background: var(--target); }
+.track .span { position: absolute; top: 9px; height: 4px; background: var(--after); opacity: 0.35; }
+.track .mk { position: absolute; top: 5px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-6px); }
+.track .mk.b { border: 2px solid var(--before); background: var(--panel); }
+.track .mk.a { background: var(--after); }
+.mrow .v { font-family: var(--mono); font-size: 12.5px; text-align: right; white-space: nowrap; }
+.mrow .v .b { color: var(--before); }
+.mrow .v .a { color: var(--after); font-weight: 600; }
+.scale { display: grid; grid-template-columns: 92px 64px 1fr 132px; gap: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.scale .ticks { position: relative; height: 14px; }
+.scale .ticks span { position: absolute; transform: translateX(-50%); }
+
+/* tables */
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th { font-size: 11.5px; font-weight: 500; letter-spacing: 0.04em; color: var(--muted); text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+td { padding: 6px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td:first-child { font-family: var(--body); font-size: 15px; white-space: normal; }
+tr.grp td { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 16px; border-bottom: 1px solid var(--rule); text-align: left; }
+td .b { color: var(--before); }
+td .a { color: var(--after); font-weight: 600; }
+.up { color: var(--good); }
+.dn { color: var(--bad); }
+.pill { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; border: 1px solid currentColor; display: inline-block; }
+.pill.ok { color: var(--good); }
+.pill.near { color: var(--warn); }
+.pill.miss { color: var(--bad); }
+tr.pick td { background: var(--shade); }
+
+/* formulas */
+.eq { font-family: var(--mono); font-size: 14.5px; background: var(--panel); border-left: 3px solid var(--after); padding: 12px 16px; line-height: 1.8; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--muted); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+.note { border-top: 1px solid var(--rule); padding-top: 14px; font-size: 15.5px; color: var(--muted); }
+.note b { color: var(--ink); }
+ul.tight { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+ul.tight li::marker { color: var(--muted); }
+footer { font-family: var(--mono); font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .mk { transition: left .4s ease; } }
+</style>
+
+<div class="page">
+
+<header>
+  <div class="eyebrow">ReggaeBuilder · SCRATCH Claude.als · 121 BPM · 160 bars · 2026-11-08</div>
+  <h1>ReggaeBuilder Phase Report</h1>
+  <p class="lede">The goal was a mix that stays wide in stereo but holds up when summed to mono. A new meter measured each stem and the master, a linear simulator predicted what width changes would do, and an optimizer chose the smallest set of changes that meets the agreed targets. Three Utility devices made the change. Correlation and mono sum were checked against full-song renders before and after.</p>
+  <div class="figs">
+    <div class="fig"><span class="label">MAIN CORRELATION</span><span class="val"><span class="from">0.71</span><span class="arrow">→</span><span class="to">0.84</span></span><span class="sub">broadband, whole song</span></div>
+    <div class="fig"><span class="label">MONO FOLD LOSS</span><span class="val"><span class="from">−0.69</span><span class="arrow">→</span><span class="to">−0.37</span></span><span class="sub">dB, target ≥ −0.8</span></div>
+    <div class="fig"><span class="label">300 Hz – 1 kHz</span><span class="val"><span class="from">0.51</span><span class="arrow">→</span><span class="to">0.74</span></span><span class="sub">corr, 45% of the energy</span></div>
+    <div class="fig"><span class="label">1–10 kHz SIDE</span><span class="val"><span class="to">−1.6</span></span><span class="sub">dB of width given up, limit 2</span></div>
+  </div>
+</header>
+
+<!-- 01 -->
+<section>
+  <div class="sec-head"><span class="n">01</span><h2>What changed in the set</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>Three devices were added. No existing device, fader, pan, send or Analog Lab setting was touched. The kick, toms and drum buses were left alone because they were already mono and phase-coherent with the bass.</p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Track</th><th>Device added</th><th>Setting</th><th>Raw value</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>Acid Bass</td><td>Utility, end of chain</td><td>Width 65%</td><td>0.806</td><td>CLI, journal #23</td></tr>
+          <tr><td>Lead</td><td>Utility, end of chain</td><td>Width 70%</td><td>0.837</td><td>CLI, journal #24</td></tr>
+          <tr><td>B-Delay (return)</td><td>Utility, after Delay</td><td>Width 60%</td><td>typed 60</td><td>screen control</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note col">Utility's <i>Stereo Width</i> parameter is not linear in the API. The raw value is the square root of the width on a 0–2 range, so 0.9 shows 81% and 0.806 shows 65%. The CLI can't address return tracks or Main, so the B-Delay Utility was added by screen control. <b>The set is unsaved</b>, so these changes exist only in the open Live session.</p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section>
+  <div class="sec-head"><span class="n">02</span><h2>Main bus, band by band</h2></div>
+  <div class="sec-body">
+    <div class="figure">
+      <div class="title">Phase correlation per band, whole song</div>
+      <div class="scroll"><div class="meter" id="meter"></div></div>
+      <div class="legend">
+        <span><i class="dot" style="border:2px solid var(--before);background:var(--panel)"></i>before (PhaseR0)</span>
+        <span><i class="dot" style="background:var(--after)"></i>after (PhaseFinal)</span>
+        <span><i class="sw" style="background:var(--target);width:2px;height:12px"></i>agreed target</span>
+      </div>
+      <p class="cap">Each track runs from −1 (fully out of phase) to +1 (mono). Energy is each band's share of the main's total power. <b>Below 150 Hz was already perfect</b>, because Main's Utility applies Bass Mono at 120 Hz. All the work was in 150 Hz–4 kHz, and the 300 Hz–1 kHz band alone carries 45% of the song's energy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section>
+  <div class="sec-head"><span class="n">03</span><h2>Measurement method</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>The meter (<code>analysis/phase_meter.py</code>) reads each exported stem and the main mix. It runs an STFT with an 8192-sample Hann window and a 4096-sample hop: 5.4 Hz bins, 93 ms frames at 44.1 kHz. Per frame and per band it accumulates L², R² and L·R*. Everything else follows from those three sums.</p>
+    </div>
+    <div class="eq">
+      M = (L + R) / 2 &nbsp;&nbsp; S = (L − R) / 2<br>
+      ρ = Re Σ L·R* / √(Σ|L|² · Σ|R|²) &nbsp;&nbsp;<span class="c">phase correlation, −1 … +1</span><br>
+      mono loss = 10·log₁₀( ΣM² / (ΣM² + ΣS²) ) dB &nbsp;&nbsp;<span class="c">level change when folded to mono</span><br>
+      width = ΣS² / (ΣM² + ΣS²) &nbsp;&nbsp;<span class="c">0 = mono, 50% = uncorrelated, 100% = anti-phase</span><br>
+      <span class="c">balanced L/R ⇒ mono loss = 10·log₁₀((1 + ρ)/2): ρ 0.71 → −0.69 dB, ρ 0.84 → −0.36 dB</span>
+    </div>
+    <div class="flow col">
+      <p>Fully uncorrelated stereo (ρ = 0) folds down 3 dB. That is not cancellation; the two channels just stop adding coherently. Real cancellation, where content disappears in mono, shows up as ρ &lt; 0 and a loss beyond −3 dB. For that reason the meter also reports short-term correlation (per frame), the 5th percentile and the share of time below zero, because a song-average figure can hide brief anti-phase moments.</p>
+      <p>In the low end the meter adds a generalized cross-correlation lag between L and R. A time offset between channels, such as a Haas delay, shows up as a lag; phase rotation from a filter does not. The pair check takes every pair of stems that carry low-frequency energy, kick and bass included. It compares their summed power with the sum of their individual powers and finds the best lag within ±10 ms. That is how you'd catch a bass that thins the kick.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section>
+  <div class="sec-head"><span class="n">04</span><h2>Diagnosis: what was wrong and what wasn't</h2></div>
+  <div class="sec-body">
+    <div class="two">
+      <div class="flow">
+        <h3>Wrong</h3>
+        <ul class="tight">
+          <li><b>Lead</b>: ρ = 0.05, below zero 41% of the time, and −3.6 dB mono loss in 150–300 Hz. It was a wide synth with its fundamental in the low mids.</li>
+          <li><b>B-Delay return</b>: ρ = −0.02, below zero 50% of the time. A ping-pong-style stereo delay is close to uncorrelated by design, and in bars 113–120 it carried 40% of the main's side energy at 300 Hz–1 kHz.</li>
+          <li><b>Acid Bass</b>: only ρ = 0.61, but it is loud. In 300 Hz–1 kHz it owned 38–59% of the side energy in bars 121–144 and nearly all of it in bars 97–112.</li>
+          <li><b>Main 300 Hz–1 kHz</b>: ρ = 0.51 over a band holding 45% of the energy, and 0.19 in the worst 8-bar section.</li>
+        </ul>
+      </div>
+      <div class="flow">
+        <h3>Not wrong</h3>
+        <ul class="tight">
+          <li><b>Low end</b>: ρ ≥ 0.999 below 150 Hz, L/R lag 0.00 ms. Kick 1.00, Toms 0.98, 22-Analog Lab V 1.00.</li>
+          <li><b>Stem pairs</b>: every low-end pair summed within ±0.1 dB of its power sum, with no kick/bass or tom/bass cancellation. Time-sliding tracks would have fixed nothing.</li>
+          <li><b>Filters</b>: every Auto Filter and EQ processes L and R identically at 100% Dry/Wet. That rotates phase equally in both channels, which changes tone but not stereo correlation.</li>
+          <li><b>LFO Phase</b>: Auto Filter's <i>LFO Phase</i> (Stereo mode = Phase) offsets the left and right LFOs; <i>Offset</i> only moves the start of the cycle. You were right about that. Only Shimmer Melody's filter had a stereo offset (183°), and Shimmer was not a main contributor.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note col"><b>Untouched by choice:</b> Shaker (ρ 0.01, 5.7 dB L/R imbalance), Moody Melody (ρ 0.09) and the A-Bright Long Verb return (ρ 0.26) are wide, but quiet or decorrelated by design. The optimizer could narrow any of them and chose not to, because the main-bus targets were met without it.</p>
+  </div>
+</section>
+
+<!-- 05 -->
+<section>
+  <div class="sec-head"><span class="n">05</span><h2>A simulator instead of trial and error</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>An export takes three minutes and needs hands off Live, so a blind search through Live was out. The changes on the table are all <b>linear and time-invariant on the M/S pair</b>: Utility width scales S, Bass Mono is a crossover on S, polarity and Left Inv are sign flips and an M↔S swap, and a low cut scales both. So the effect of any setting on the main mix can be computed exactly from the stems that are already rendered.</p>
+    </div>
+    <div class="eq">
+      X = [M₁, S₁, M₂, S₂, … , M_rest, S_rest] &nbsp;&nbsp;<span class="c">per STFT bin</span><br>
+      G[b, t, k, l] = Re Σ_bins∈b Σ_frames∈t X_k · X_l* &nbsp;&nbsp;<span class="c">Gram tensor: 49 sub-bands × 160 bars × 24 × 24</span><br>
+      M_main = Σ_k u_M[b,k] · X_k &nbsp;&nbsp; S_main = Σ_k u_S[b,k] · X_k &nbsp;&nbsp;<span class="c">u = per-band weights from the settings</span><br>
+      E_MM = u_Mᵀ G u_M &nbsp; E_SS = u_Sᵀ G u_S &nbsp; E_MS = u_Mᵀ G u_S &nbsp;&nbsp;<span class="c">→ ρ, mono loss, width, per band and per bar</span><br>
+      Bass Mono at f_c: side gain = 1 / (1 + (f_c/f)⁴) &nbsp;&nbsp;<span class="c">Linkwitz-Riley, power-complementary</span>
+    </div>
+    <div class="flow col">
+      <p>Building G takes about 25 seconds, one pass over the audio. After that, scoring any combination of settings is a handful of einsum contractions and takes milliseconds. The tensor keeps cross terms between stems, so it captures stems cancelling or reinforcing each other as well as each stem's own width.</p>
+      <p><b>The residual trick.</b> The first version summed the adjustable stems with the untouched ones and came out too optimistic (300 Hz–1 kHz: simulated 0.56, real 0.51). It was missing the group buses: the Synths group has its own compression and saturation, which the raw member stems don't carry. Version 2 models the untouched part of the mix as <i>top-level stems (group buses included) minus the adjustable stems</i>, so the bus processing ends up in the residual. That brought the baseline within 0.02 of the real main.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Simulator against the real renders</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Main, whole song</th><th>sim, no change</th><th>real R0</th><th>sim, chosen</th><th>real final</th><th>error, chosen</th></tr></thead>
+          <tbody>
+            <tr><td>Broadband ρ</td><td>0.715</td><td>0.707</td><td>0.827</td><td>0.840</td><td>−0.013</td></tr>
+            <tr><td>150–300 Hz ρ</td><td>0.819</td><td>0.825</td><td>0.879</td><td>0.905</td><td>−0.026</td></tr>
+            <tr><td>300 Hz–1 kHz ρ</td><td>0.502</td><td>0.508</td><td>0.701</td><td>0.741</td><td>−0.040</td></tr>
+            <tr><td>1–4 kHz ρ</td><td>0.492</td><td>0.507</td><td>0.623</td><td>0.664</td><td>−0.041</td></tr>
+            <tr><td>Mono loss, dB</td><td>−0.67</td><td>−0.69</td><td>−0.39</td><td>−0.37</td><td>−0.02</td></tr>
+            <tr><td>1–10 kHz side change, dB</td><td>0</td><td>0</td><td>−1.49</td><td>−1.60</td><td>+0.11</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">The simulator was slightly <b>pessimistic</b>, and for a known reason. It scales B-Delay's side by 0.6 but uses the B-Delay stem as rendered before the change. In Live, the Utilities on Lead and Acid Bass sit before the sends, so the delay is fed a narrower signal too and comes out narrower than the model expects. B-Delay alone went from ρ −0.02 to 0.72; the model predicts 0.46 for a ×0.6 width on a stem whose side and mid are about equal.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section>
+  <div class="sec-head"><span class="n">06</span><h2>Optimizer</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>The search space was agreed up front. It covered Utility width 50–120% and Bass Mono 100–300 Hz on eleven wide stems and both returns, plus Left Inv on Lead and Moody Melody, a keep-or-remove for Shimmer's existing polarity flip, Main's Bass Mono at 120–180 Hz, the Acid Bass chorus high-pass and a reverb low cut. The targets became soft constraints, each a squared hinge:</p>
+    </div>
+    <div class="eq">
+      J(p) = Σ_targets w_i · max(0, t_i − m_i(p))² / σ_i² &nbsp;&nbsp;+&nbsp;&nbsp; R(p)<br>
+      <span class="c">m_i: &lt;150 Hz ρ ≥ 0.98, 150–300 Hz ρ ≥ 0.85, 300 Hz–1 kHz ρ ≥ 0.6, mono loss ≥ −0.8 dB,</span><br>
+      <span class="c">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;per-bar ρ ≥ 0.05, 1–10 kHz side drop ≤ 2 dB, per-stem band loss ≥ −3 dB where band &gt; 2% of stem energy</span><br>
+      R(p) = Σ √((1 − w)² + ε) + 0.5·(f_c − 60)/240 + 0.3·[switch on] &nbsp;&nbsp;<span class="c">smallest change wins</span>
+    </div>
+    <div class="flow col">
+      <p>The continuous parameters were solved with <b>L-BFGS-B</b> (bounded quasi-Newton, numerical gradients, step 10⁻³, at most 60 iterations). The on/off switches can't be differentiated, so all 2³ = 8 combinations were enumerated, each with its own continuous solve. Left Inv was offered only on stems whose side energy is at least as large as their mid, since that's the only case where swapping M and S helps. A snap step then rounds widths to 1%, sets widths within 3% of 100% back to 100%, and turns off any crossover below 100 Hz.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Switch combinations, round 1 (whole-song targets)</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Switches on</th><th>objective J</th><th>iterations</th></tr></thead>
+          <tbody id="switches"></tbody>
+        </table>
+      </div>
+      <p class="cap">Every switch costs 0.3 in regularization, so subtracting 0.3 per switch shows what each one does to the metrics. <b>Shimmer polarity</b>: exactly +0.300, so flipping it changes nothing. Shimmer is uncorrelated with the rest of the mix, and inverting both channels of an uncorrelated stem leaves the sum's power unchanged. <b>Lead Left Inv</b>: +0.169, so the metrics improved by 0.13 but not enough to pay for the switch. <b>Moody Left Inv</b>: +0.429, so the metrics got 0.13 worse. Their side and mid are close in level, so swapping M and S moves energy around rather than narrowing anything. <b>Round 1 result</b>: Acid Bass 81%, Lead 89%, B-Delay 94%. B-Delay was dropped because the CLI can't reach returns, and with the returns held fixed the optimizer gave the same 81/89 split.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section>
+  <div class="sec-head"><span class="n">07</span><h2>Round 1 check: fragment A/B</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>To save time and disk, round 1 was checked on a 34-bar fragment (bars 111–144) instead of a full export. The first comparison against the full R0 render was confounded: Lead came out about 2.5 dB quieter in the fragment. Analog Lab's free-running LFOs and arps restart at the render start, so a fragment is not the same audio as the same bars in a full render. The fix was a clean A/B: the same fragment rendered twice, once with the new Utilities bypassed (R1A) and once with them on (R1).</p>
+    </div>
+    <div class="figure">
+      <div class="title">Bars 113–144, same fragment, Utilities bypassed vs on</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Main</th><th>R1A bypassed</th><th>R1 on</th><th>change</th></tr></thead>
+          <tbody>
+            <tr><td>Broadband ρ</td><td>0.56</td><td>0.64</td><td class="up">+0.08</td></tr>
+            <tr><td>150–300 Hz ρ</td><td>0.80</td><td>0.85</td><td class="up">+0.05</td></tr>
+            <tr><td>300 Hz–1 kHz ρ</td><td>0.39</td><td>0.49</td><td class="up">+0.10</td></tr>
+            <tr><td>1–4 kHz ρ</td><td>0.34</td><td>0.46</td><td class="up">+0.11</td></tr>
+            <tr><td>Mono loss, dB</td><td>−1.09</td><td>−0.87</td><td class="up">+0.22</td></tr>
+            <tr><td>Time with ρ &lt; 0</td><td>1.3%</td><td>0.1%</td><td class="up">−1.2 pt</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">Round 1 worked, but on these bars it was not enough: 300 Hz–1 kHz stayed under 0.6. That prompted the section analysis below. Lesson for this project: <b>fragments are valid only for A/B deltas where both sides are fragments</b>. The final verdict needs a full render.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section>
+  <div class="sec-head"><span class="n">08</span><h2>Sections: the song average hid the bad part</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>A song-wide target can be met while one section is badly out. The optimizer gained a section mode: the 150–300 Hz and 300 Hz–1 kHz targets apply to every 8-bar section, each penalty weighted by that section's share of the band's energy. Run against R0, it found bars 113–144 as the problem. The side energy there came from different sources in different parts.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Who owns the side signal, 300 Hz – 1 kHz</div>
+      <div class="scroll"><div class="chart" id="share"></div></div>
+      <div class="legend" id="share-legend"></div>
+      <p class="cap">Each stem's share of the side-signal energy in each 8-bar section, computed from the Gram tensor's diagonal (cross terms left out). <b>Bars 113–120 were a B-Delay problem; bars 121–144 an Acid Bass problem.</b> The Lead was a steady 15–22%. After the change, the "rest of mix" share grows because the three narrowed stems shrink; the absolute side level in this band fell 3.1 dB.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Options that were on the table</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Option</th><th>Acid Bass</th><th>Lead</th><th>B-Delay</th><th>J</th><th>300–1k ρ</th><th>150–300 ρ</th><th>1–10 kHz side</th></tr></thead>
+          <tbody>
+            <tr><td>No change</td><td>100%</td><td>100%</td><td>100%</td><td>68.2</td><td>0.50</td><td>0.82</td><td>0 dB</td></tr>
+            <tr><td>A: round 1</td><td>81%</td><td>89%</td><td>100%</td><td>44.2</td><td>0.60</td><td>0.85</td><td>−0.6 dB</td></tr>
+            <tr class="pick"><td>C + B-Delay 60% (chosen)</td><td>65%</td><td>70%</td><td>60%</td><td>18.7</td><td>0.70</td><td>0.88</td><td>−1.5 dB</td></tr>
+            <tr><td>Strict</td><td>50%</td><td>50%</td><td>60%</td><td>10.2</td><td>0.78</td><td>0.91</td><td>−2.1 dB</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">Simulated with section targets on (J is the section-weighted objective, so it isn't comparable with the round 1 numbers in 06). The strict option scores best, but it goes over the 2 dB width budget (−2.1 dB) and puts two synths on the 50% floor. The chosen option is the strongest that stays inside the budget.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section>
+  <div class="sec-head"><span class="n">09</span><h2>Final result, full render against full render</h2></div>
+  <div class="sec-body">
+    <div class="flow col">
+      <p>The final export used the same settings as R0: all individual tracks, 1.1.1 plus 160 bars, Main FX off, 44.1 kHz/16-bit WAV. That makes before and after sample-aligned and directly comparable.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Correlation across the spectrum</div>
+      <div class="scroll"><div class="chart" id="spectrum"></div></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--before)"></i>before</span>
+        <span><i class="sw" style="background:var(--after)"></i>after</span>
+        <span><i class="sw" style="background:var(--s-rest);height:8px"></i>main energy per sub-band (dB, right)</span>
+      </div>
+      <p class="cap">49 sub-bands, 10 Hz wide from 40 to 400 Hz, wider above. The gain is broad across 200 Hz–4 kHz, where the three narrowed instruments live. The two narrow dips at 210–230 Hz and 280–300 Hz sit on A3 (220 Hz) and D4 (294 Hz), most likely sustained notes from the wide synths. Their deepest sub-bands rose from 0.48 to 0.70 and from 0.46 to 0.68. Above 4 kHz nothing changed, so the hats, shaker and air keep their width.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Correlation per bar, whole song</div>
+      <div class="scroll"><div class="chart" id="timeline"></div></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--before)"></i>before</span>
+        <span><i class="sw" style="background:var(--after)"></i>after</span>
+        <span><i class="sw" style="background:var(--shade);height:10px;border:1px solid var(--rule)"></i>bars 113–144</span>
+      </div>
+      <p class="cap">Broadband ρ per bar for the main. The intro (bars 1–16) is drums and bass and was already mono. From the breakdown on, every bar is higher, by 0.05 to 0.39. Bars 113–120 were the low point and still are, but the worst bar went from 0.18 to 0.57. Below 150 Hz, ρ stays above 0.99 until bar 137. In the last section the slope of Main's 120 Hz Bass Mono crossover lets some 120–150 Hz side through, and the worst bar there went from 0.84 to 0.93.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Per 8-bar section: before, simulated, after</div>
+      <div class="scroll"><div class="chart" id="sections"></div></div>
+      <div class="legend">
+        <span><i class="dot" style="border:2px solid var(--before);background:var(--panel)"></i>before</span>
+        <span><i class="dot" style="background:var(--after)"></i>after</span>
+        <span><i class="sw" style="background:var(--sim);width:12px;height:3px"></i>simulator prediction</span>
+        <span><i class="sw" style="background:var(--target);width:14px;height:1px;border-top:1px dashed var(--target)"></i>target</span>
+        <span><i class="sw" style="background:var(--s-rest);height:8px;width:10px"></i>section's share of band energy</span>
+      </div>
+      <p class="cap">300 Hz–1 kHz now clears 0.6 in 18 of 20 sections. The two exceptions are bars 17–24, which moved from 0.65 to 0.60 in a sparse section with 0.2% of the band's energy (free-running synth state, not the change), and bars 113–120, at 0.57. 150–300 Hz still misses 0.85 in bars 113–144 (0.57–0.79), and narrowly in bars 89–96 (0.83, 0.6% of the band's energy). That is the remaining weak spot, and closing it fully would need the strict option or Bass Mono on Acid Bass.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Agreed targets</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Target</th><th>Limit</th><th>Before</th><th>After</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Main below 150 Hz ρ</td><td>≥ 0.98</td><td>1.000</td><td>1.000</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Main 150–300 Hz ρ</td><td>≥ 0.85</td><td>0.825</td><td>0.905</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Main 300 Hz–1 kHz ρ</td><td>≥ 0.60</td><td>0.508</td><td>0.741</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Time with ρ &lt; 0</td><td>&lt; 1%</td><td>0.4%</td><td>0.1%</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Main mono loss</td><td>≥ −0.8 dB</td><td>−0.69</td><td>−0.37</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Stem bands &gt; 2% energy losing &gt; 3 dB</td><td>none</td><td>6</td><td>1</td><td><span class="pill near">Shaker, −3.06 dB</span></td></tr>
+            <tr><td>1–10 kHz side energy drop</td><td>≤ 2 dB</td><td>—</td><td>−1.60 dB</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>No synth narrower than</td><td>50%</td><td>—</td><td>60–70%</td><td><span class="pill ok">met</span></td></tr>
+            <tr><td>Main 150–300 Hz ρ, bars 113–144</td><td>≥ 0.85</td><td>0.52</td><td>0.72</td><td><span class="pill miss">section</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">Mid (mono) level rose 0.23 dB over 1–10 kHz and 0.19 dB overall, and total stereo level fell 0.13 dB. The mono fold-down is fuller, and the stereo mix is effectively the same loudness. The 6 failing stem bands at R0 were B-Delay at 150 Hz–4 kHz (3 bands), Lead and the Synths group at 150–300 Hz, and Shaker at 10–20 kHz. Only the untouched Shaker is left.</p>
+    </div>
+    <div class="figure">
+      <div class="title">Stems, before → after</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Stem</th><th>ρ</th><th>mono loss dB</th><th>time ρ &lt; 0</th><th>width</th></tr></thead>
+          <tbody id="stems"></tbody>
+        </table>
+      </div>
+      <p class="cap">The Synths group bus picks up the Lead change (ρ 0.07 → 0.35). Everything else agrees to within measurement noise, which confirms the change was surgical.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section>
+  <div class="sec-head"><span class="n">10</span><h2>Incidents</h2></div>
+  <div class="sec-body">
+    <ul class="tight col">
+      <li><b>Live crashed during the first final export</b> (crash report at 11:46, a minute after the export started). Crash recovery restored the Acid Bass and Lead Utilities at the right values but reset the B-Delay Utility to 100%. It was set to 60% again before re-exporting.</li>
+      <li><b>Drift check after the crash.</b> Every track's mixer, device list, on/off state and native device parameters were compared between the saved <code>.als</code> (read only) and the live set. Each difference traced to automation read at the playhead, which sat at bar 121 instead of bar 1 (B-Delay Feedback/Dry-Wet, Aliens and Hat Rolls Delay on/off, Lead/Shimmer/crash volumes, Shimmer pan) or to the API reporting normalized values where the file stores real units. Nothing else had drifted.</li>
+      <li><b>Export path.</b> The second export wrote stems loose in the project folder instead of a subfolder, and named the return "B-Delay | Utility". The files were moved to <code>PhaseFinal\</code> and the return renamed to match R0.</li>
+      <li><b>Fragment confound</b> in round 1, covered in 07.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 11 -->
+<section>
+  <div class="sec-head"><span class="n">11</span><h2>Open items</h2></div>
+  <div class="sec-body">
+    <ul class="tight col">
+      <li><b>Save the set</b> in Live if you want to keep the three Utilities. Nothing has been written to disk.</li>
+      <li><b>Bars 113–144, 150–300 Hz</b> (0.57–0.79 against 0.85). The next step would be Bass Mono at about 200 Hz on Acid Bass's Utility, or Acid Bass's chorus high-pass. Both are in the agreed search space and cost no width above 300 Hz.</li>
+      <li><b>Shaker</b> folds down 3.06 dB at 10–20 kHz and has a 5.7 dB L/R imbalance. It's audible only as a slightly duller shaker in mono, so it can be left alone or narrowed to about 90%.</li>
+      <li><b>Renders kept for listening</b>: <code>F:\Ableton\ReggaeBuilder Project\PhaseR0\</code> and <code>PhaseFinal\</code>, 1.4 GB each. A reminder to delete them is saved.</li>
+      <li><b>Code</b>: <code>analysis/phase_meter.py</code>, <code>analysis/phase_optimize.py</code> and their tests (8 + 3, passing) are not committed yet.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <span>Data: runs/2026-11-08/phase/ (r0_meter.json, final_meter.json, r0/final _b113-144, r1/r1a fragment meters, r0_opt_v2.log, r2 plans) and the cached Gram tensor phase_gram_v2.npz.</span>
+  <span>STFT N=8192, hop 4096, Hann · 44.1 kHz · bars at 121 BPM from 1.1.1 · active frames within 50 dB of the loudest.</span>
+</footer>
+</div>
+
+<script>
+const D = {"cent":[28.3,44.7,54.8,64.8,74.8,84.9,94.9,104.9,114.9,124.9,134.9,144.9,154.9,164.9,174.9,184.9,194.9,204.9,214.9,224.9,234.9,244.9,255.0,265.0,275.0,285.0,295.0,305.0,315.0,325.0,335.0,345.0,355.0,365.0,375.0,385.0,395.0,447.2,591.6,836.7,1224.7,1732.1,2449.5,3464.1,4899.0,6928.2,8944.3,11832.2,16733.2],"spec":{"before":{"c":[1.0,1.0,1.0,1.0,1.0,0.9998,0.9986,0.9986,0.9989,0.9994,0.9986,0.9967,0.9969,0.9929,0.9823,0.9688,0.9449,0.863,0.4777,0.5618,0.9159,0.942,0.8944,0.8587,0.8185,0.5107,0.4614,0.7072,0.6787,0.6552,0.629,0.6951,0.7004,0.6964,0.6555,0.6434,0.6573,0.4757,0.4809,0.5296,0.5996,0.4355,0.293,0.3992,0.7265,0.8363,0.8444,0.7512,0.6796],"e":[-17.24,-11.27,-3.41,-2.34,-7.73,-7.43,-9.18,-8.31,-7.47,-8.72,-10.14,-13.89,-11.61,-12.45,-13.58,-13.98,-14.19,-14.65,-14.15,-12.49,-16.91,-17.78,-18.11,-18.9,-19.57,-19.45,-14.44,-19.81,-18.65,-11.83,-14.45,-17.68,-22.85,-20.73,-19.42,-15.38,-16.21,-1.03,-0.04,0.0,-4.19,-9.43,-9.79,-13.68,-11.5,-11.79,-11.57,-11.63,-16.98]},"after":{"c":[1.0,1.0,1.0,1.0,1.0,0.9999,0.9987,0.9993,0.9995,0.9997,0.9993,0.9983,0.9985,0.9965,0.991,0.9812,0.9692,0.9258,0.6963,0.7493,0.9552,0.9699,0.9512,0.9347,0.9106,0.7375,0.6794,0.8395,0.8505,0.8402,0.8102,0.8475,0.844,0.8601,0.8353,0.8322,0.838,0.7208,0.7274,0.7514,0.7688,0.5573,0.4566,0.5351,0.757,0.8442,0.8422,0.7402,0.6776],"e":[-16.75,-10.8,-2.97,-1.93,-7.31,-7.03,-8.77,-7.91,-7.09,-8.32,-9.73,-13.45,-11.19,-12.07,-13.21,-13.64,-13.86,-14.45,-14.19,-12.41,-16.66,-17.45,-17.72,-18.57,-19.22,-19.4,-14.41,-19.67,-18.57,-11.74,-14.34,-17.42,-22.63,-20.55,-19.47,-15.21,-16.0,-1.09,-0.04,0.0,-4.06,-9.14,-9.61,-13.61,-11.1,-11.36,-11.14,-11.11,-16.46]}},"bars":{"before":[0.996,0.997,0.998,0.994,0.996,0.998,0.998,0.995,0.965,0.957,0.963,0.965,0.957,0.962,0.958,0.946,0.787,0.872,0.79,0.873,0.906,0.934,0.937,0.913,0.921,0.967,0.928,0.963,0.938,0.969,0.952,0.911,0.963,0.959,0.961,0.96,0.967,0.944,0.968,0.962,0.959,0.965,0.933,0.879,0.845,0.852,0.82,0.868,0.817,0.901,0.961,0.881,0.806,0.671,0.626,0.712,0.758,0.801,0.736,0.541,0.816,0.867,0.85,0.827,0.856,0.843,0.836,0.837,0.821,0.845,0.845,0.81,0.781,0.829,0.761,0.815,0.785,0.795,0.805,0.799,0.757,0.779,0.739,0.75,0.606,0.632,0.657,0.658,0.651,0.624,0.625,0.646,0.623,0.644,0.62,0.666,0.614,0.628,0.596,0.683,0.631,0.683,0.64,0.651,0.671,0.634,0.66,0.665,0.571,0.511,0.501,0.462,0.369,0.251,0.184,0.247,0.525,0.602,0.595,0.603,0.594,0.601,0.613,0.577,0.606,0.606,0.644,0.599,0.654,0.637,0.559,0.616,0.502,0.544,0.52,0.433,0.445,0.401,0.444,0.387,0.439,0.385,0.415,0.395,0.631,0.651,0.644,0.636,0.668,0.632,0.619,0.631,0.646,0.624,0.594,0.616,0.638,0.669,0.6,0.657],"after":[0.995,0.996,0.998,0.993,0.996,0.998,0.997,0.994,0.967,0.958,0.965,0.964,0.957,0.964,0.961,0.96,0.785,0.858,0.792,0.863,0.923,0.936,0.933,0.918,0.93,0.959,0.923,0.964,0.942,0.972,0.956,0.935,0.963,0.962,0.961,0.961,0.969,0.953,0.971,0.964,0.959,0.969,0.955,0.934,0.921,0.927,0.905,0.932,0.903,0.944,0.966,0.934,0.871,0.828,0.814,0.855,0.869,0.883,0.818,0.598,0.886,0.929,0.926,0.911,0.93,0.919,0.915,0.921,0.892,0.904,0.904,0.882,0.868,0.883,0.843,0.875,0.858,0.876,0.885,0.882,0.853,0.874,0.856,0.873,0.817,0.824,0.836,0.836,0.833,0.819,0.818,0.826,0.821,0.827,0.815,0.838,0.815,0.818,0.805,0.826,0.811,0.83,0.809,0.807,0.809,0.797,0.81,0.826,0.734,0.734,0.706,0.708,0.672,0.645,0.568,0.55,0.78,0.79,0.771,0.772,0.789,0.784,0.759,0.767,0.753,0.778,0.792,0.777,0.799,0.795,0.768,0.745,0.71,0.748,0.73,0.681,0.694,0.667,0.625,0.658,0.656,0.684,0.686,0.675,0.826,0.82,0.832,0.833,0.842,0.831,0.811,0.818,0.828,0.824,0.803,0.819,0.833,0.835,0.807,0.832]},"sec":{"starts":[1,9,17,25,33,41,49,57,65,73,81,89,97,105,113,121,129,137,145,153],"mid":{"before":[0.9928,0.9092,0.6546,0.5911,0.6863,0.6069,0.6105,0.6089,0.6024,0.6079,0.5949,0.6197,0.5984,0.5077,0.1923,0.33,0.411,0.4028,0.6119,0.6138],"after":[0.9901,0.9089,0.5982,0.6747,0.7112,0.8043,0.8069,0.7975,0.7969,0.8074,0.8056,0.8171,0.8051,0.7373,0.5668,0.6001,0.6636,0.6595,0.8098,0.813],"sim":[0.99,0.895,0.625,0.545,0.654,0.797,0.806,0.797,0.795,0.802,0.802,0.816,0.798,0.708,0.429,0.484,0.592,0.59,0.811,0.814],"sim0":[0.99,0.895,0.624,0.536,0.645,0.599,0.605,0.603,0.6,0.605,0.591,0.615,0.597,0.502,0.194,0.322,0.423,0.41,0.607,0.61],"w":[0.001539,0.002486,0.001944,0.003264,0.003315,0.024536,0.038559,0.027753,0.037232,0.042687,0.083001,0.130312,0.064059,0.065858,0.096317,0.06826,0.084399,0.095449,0.063132,0.065898]},"lowmid":{"before":[0.9882,0.9885,0.9996,0.9997,0.9995,0.9993,0.9993,0.9629,0.9697,0.9206,0.8294,0.6628,0.9851,0.9598,0.6082,0.5775,0.5211,0.2858,0.7275,0.739],"after":[0.9885,0.9886,0.9997,0.9997,0.9996,0.9996,0.9996,0.9841,0.987,0.9631,0.9196,0.8336,0.9918,0.9717,0.7924,0.7624,0.695,0.5693,0.8756,0.8828],"sim":[0.989,0.99,1.0,1.0,1.0,1.0,1.0,0.987,0.99,0.971,0.927,0.845,0.99,0.974,0.748,0.71,0.671,0.446,0.87,0.878],"w":[0.076316,0.072633,0.037049,0.073085,0.070501,0.060693,0.034619,0.033326,0.062412,0.070131,0.050156,0.006476,0.000357,0.010451,0.076597,0.08386,0.070107,0.054754,0.028833,0.027644]}},"share":{"before":{"Acid Bass":[0.9767,0.7759,0.1942,0.3797,0.5492,0.5879],"B-Delay":[0.0,0.0541,0.4016,0.0,0.0,0.0],"Lead":[0.0017,0.059,0.1599,0.2235,0.1639,0.1535],"(rest of mix)":[0.0182,0.1108,0.2421,0.3867,0.2807,0.2585]},"after":{"Acid Bass":[0.9484,0.6728,0.1494,0.2406,0.3872,0.4267],"B-Delay":[0.0,0.04,0.2632,0.0,0.0,0.0],"Lead":[0.0019,0.0593,0.1427,0.1642,0.134,0.1292],"(rest of mix)":[0.0419,0.2274,0.4408,0.58,0.4683,0.4441]}}};
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svg(host, w, h) { const s = el('svg', { viewBox: `0 0 ${w} ${h}`, role: 'img' }); document.getElementById(host).appendChild(s); return s; }
+const css = v => `var(--${v})`;
+
+/* 02 band meter */
+(function () {
+  const rows = [
+    ['20–40 Hz', 0.28, 1.000, 1.000, 0.98], ['40–60 Hz', 7.99, 1.000, 1.000, 0.98], ['60–80 Hz', 11.33, 1.000, 1.000, 0.98],
+    ['80–100 Hz', 4.54, 0.999, 0.999, 0.98], ['100–150 Hz', 9.01, 0.999, 0.999, 0.98], ['150–300 Hz', 7.54, 0.825, 0.905, 0.85],
+    ['300 Hz–1 kHz', 45.17, 0.508, 0.741, 0.60], ['1–4 kHz', 9.69, 0.507, 0.664, null], ['4–10 kHz', 3.11, 0.801, 0.813, null],
+    ['10–20 kHz', 1.34, 0.735, 0.726, null]];
+  const m = document.getElementById('meter');
+  const pos = v => ((v + 1) / 2 * 100) + '%';
+  m.insertAdjacentHTML('beforeend', `<div class="mrow head"><span>band</span><span>energy</span><span>correlation −1 … +1</span><span style="text-align:right">before → after</span></div>`);
+  for (const [b, e, x, y, t] of rows) {
+    const lo = Math.min(x, y), hi = Math.max(x, y);
+    m.insertAdjacentHTML('beforeend', `<div class="mrow"><span class="band">${b}</span>
+      <span class="e">${e.toFixed(1)}%<i class="ebar" style="width:${Math.max(2, e / 45.17 * 100)}%"></i></span>
+      <span class="track"><i class="axis"></i><i class="zero" style="left:50%"></i>
+        ${t != null ? `<i class="tgt" style="left:${pos(t)}" title="target ${t}"></i>` : ''}
+        <i class="span" style="left:${pos(lo)};width:${(hi - lo) / 2 * 100}%"></i>
+        <i class="mk b" style="left:${pos(x)}"></i><i class="mk a" style="left:${pos(y)}"></i></span>
+      <span class="v"><span class="b">${x.toFixed(3)}</span> → <span class="a">${y.toFixed(3)}</span></span></div>`);
+  }
+  m.insertAdjacentHTML('beforeend', `<div class="scale"><span></span><span></span><span class="ticks">${[-1, -0.5, 0, 0.5, 1].map(v => `<span style="left:${pos(v)}">${v > 0 ? '+' : ''}${v}</span>`).join('')}</span><span></span></div>`);
+})();
+
+/* 06 switches */
+(function () {
+  const rows = [['none', 0.509, 16], ['Shimmer polarity off', 0.809, 15], ['Lead Left Inv', 0.678, 22], ['Lead Left Inv + Shimmer', 0.978, 15],
+    ['Moody Left Inv', 0.938, 18], ['Moody Left Inv + Shimmer', 1.238, 16], ['Lead + Moody Left Inv', 1.106, 28], ['all three', 1.406, 20]];
+  const tb = document.getElementById('switches');
+  rows.forEach(([n, j, it], i) => tb.insertAdjacentHTML('beforeend', `<tr${i === 0 ? ' class="pick"' : ''}><td>${n}${i === 0 ? ' (best)' : ''}</td><td>${j.toFixed(3)}</td><td>${it}</td></tr>`));
+})();
+
+/* 08 side share */
+(function () {
+  const W = 900, rowH = 22, gap = 8, left = 128, right = 16, top = 22;
+  const secs = ['97–104', '105–112', '113–120', '121–128', '129–136', '137–144'];
+  const keys = [['Acid Bass', 's-acid'], ['B-Delay', 's-delay'], ['Lead', 's-lead'], ['(rest of mix)', 's-rest']];
+  const H = top + secs.length * (2 * rowH + gap + 10) + 10;
+  const s = svg('share', W, H);
+  const x = v => left + v * (W - left - right);
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { el('line', { x1: x(v), x2: x(v), y1: top - 6, y2: H - 6, stroke: css('grid') }, s); el('text', { x: x(v), y: 12, 'text-anchor': 'middle' }, s, Math.round(v * 100) + '%'); });
+  secs.forEach((name, i) => {
+    const y0 = top + i * (2 * rowH + gap + 10);
+    el('text', { x: 0, y: y0 + rowH + 4, style: 'fill:var(--ink)' }, s, 'bars ' + name);
+    ['before', 'after'].forEach((t, j) => {
+      const y = y0 + j * (rowH + 2);
+      el('text', { x: left - 8, y: y + rowH / 2 + 4, 'text-anchor': 'end' }, s, t);
+      let acc = 0;
+      keys.forEach(([k, c]) => {
+        const v = (D.share[t][k] || [])[i] || 0;
+        if (v > 0.002) el('rect', { x: x(acc), y, width: Math.max(0.5, x(acc + v) - x(acc)), height: rowH, fill: css(c) }, s);
+        if (v > 0.09) el('text', { x: x(acc) + 6, y: y + rowH / 2 + 4, style: 'fill:var(--panel);font-weight:600' }, s, Math.round(v * 100) + '%');
+        acc += v;
+      });
+    });
+  });
+  document.getElementById('share-legend').innerHTML = keys.map(([k, c]) => `<span><i class="sw" style="background:var(--${c});height:10px;width:14px"></i>${k}</span>`).join('');
+})();
+
+/* 09 spectrum */
+(function () {
+  const W = 900, H = 330, l = 46, r = 50, t = 14, b = 34;
+  const s = svg('spectrum', W, H);
+  const fx = f => l + (Math.log10(f) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20)) * (W - l - r);
+  const fy = v => t + (1 - v) * (H - t - b);            // corr 0..1
+  const ey = db => (H - b) - (Math.max(0, 30 + db) / 30) * (H - t - b) * 0.35;   // energy: bottom 35% of the plot
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { el('line', { x1: l, x2: W - r, y1: fy(v), y2: fy(v), stroke: css('grid') }, s); el('text', { x: l - 8, y: fy(v) + 4, 'text-anchor': 'end' }, s, v.toFixed(2)); });
+  [[150, '150'], [300, '300'], [1000, '1k'], [4000, '4k'], [10000, '10k']].forEach(([f, n]) => el('line', { x1: fx(f), x2: fx(f), y1: t, y2: H - b, stroke: css('rule'), 'stroke-dasharray': '3 3' }, s));
+  [20, 50, 100, 150, 200, 300, 500, 1000, 2000, 4000, 10000, 20000].forEach(f => el('text', { x: fx(f), y: H - b + 18, 'text-anchor': 'middle' }, s, f >= 1000 ? (f / 1000) + 'k' : f));
+  el('text', { x: W - r + 8, y: H - b + 4 }, s, '−30');
+  el('text', { x: W - r + 8, y: ey(0) + 4 }, s, '0 dB');
+  // energy area
+  const C = D.cent, E = D.spec.after.e;
+  let p = `M${fx(C[0])},${H - b}`; C.forEach((c, i) => p += ` L${fx(c)},${ey(E[i])}`); p += ` L${fx(C[C.length - 1])},${H - b} Z`;
+  el('path', { d: p, fill: css('s-rest'), 'fill-opacity': 0.35, stroke: 'none' }, s);
+  // lines
+  for (const [k, c] of [['before', 'before'], ['after', 'after']]) {
+    const pts = C.map((f, i) => `${fx(f).toFixed(1)},${fy(D.spec[k].c[i]).toFixed(1)}`).join(' ');
+    el('polyline', { points: pts, fill: 'none', stroke: css(c), 'stroke-width': 2.2, 'stroke-linejoin': 'round' }, s);
+  }
+  el('text', { x: l, y: H - 4 }, s, 'Hz');
+})();
+
+/* 09 timeline */
+(function () {
+  const W = 900, H = 280, l = 46, r = 14, t = 22, b = 34;
+  const s = svg('timeline', W, H);
+  const n = D.bars.before.length;
+  const fx = bar => l + (bar - 1) / (n - 1) * (W - l - r);
+  const lo = 0.0, fy = v => t + (1 - (v - lo) / (1 - lo)) * (H - t - b);
+  el('rect', { x: fx(113), y: t, width: fx(144) - fx(113), height: H - t - b, fill: css('shade') }, s);
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { el('line', { x1: l, x2: W - r, y1: fy(v), y2: fy(v), stroke: css('grid') }, s); el('text', { x: l - 8, y: fy(v) + 4, 'text-anchor': 'end' }, s, v.toFixed(2)); });
+  [1, 17, 33, 49, 65, 81, 97, 113, 129, 145, 160].forEach(bar => el('text', { x: fx(bar), y: H - b + 18, 'text-anchor': 'middle' }, s, bar));
+  [[21, 'Tribal Tom in'], [53, 'First BreakDown']].forEach(([bar, name]) => { el('line', { x1: fx(bar), x2: fx(bar), y1: t - 6, y2: H - b, stroke: css('muted'), 'stroke-dasharray': '2 3' }, s); el('text', { x: fx(bar) + 4, y: t - 8 }, s, name); });
+  for (const k of ['before', 'after']) {
+    const pts = D.bars[k].map((v, i) => `${fx(i + 1).toFixed(1)},${fy(v).toFixed(1)}`).join(' ');
+    el('polyline', { points: pts, fill: 'none', stroke: css(k), 'stroke-width': 1.8, 'stroke-linejoin': 'round' }, s);
+  }
+  el('text', { x: l, y: H - 4 }, s, 'bar');
+})();
+
+/* 09 sections */
+(function () {
+  const W = 900, panelH = 190, l = 46, r = 14, t = 26, gapY = 40, b = 30;
+  const H = t + 2 * panelH + gapY + b;
+  const s = svg('sections', W, H);
+  const st = D.sec.starts, n = st.length, slot = (W - l - r) / n;
+  const panels = [['300 Hz – 1 kHz', 'mid', 0.6, 0.0], ['150 – 300 Hz', 'lowmid', 0.85, 0.2]];
+  panels.forEach(([name, key, tgt, lo], pi) => {
+    const y0 = t + pi * (panelH + gapY);
+    const fy = v => y0 + (1 - (v - lo) / (1 - lo)) * (panelH - 24);
+    el('text', { x: l, y: y0 - 10, style: 'fill:var(--ink);font-weight:600' }, s, name);
+    const ticks = lo === 0 ? [0, 0.25, 0.5, 0.75, 1] : [0.2, 0.4, 0.6, 0.8, 1];
+    ticks.forEach(v => { el('line', { x1: l, x2: W - r, y1: fy(v), y2: fy(v), stroke: css('grid') }, s); el('text', { x: l - 8, y: fy(v) + 4, 'text-anchor': 'end' }, s, v.toFixed(2)); });
+    const wmax = Math.max(...D.sec[key].w);
+    D.sec[key].w.forEach((w, i) => { const hh = 18 * w / wmax; el('rect', { x: l + i * slot + slot * 0.25, y: y0 + panelH - 4 - hh, width: slot * 0.5, height: Math.max(hh, 0.5), fill: css('s-rest'), 'fill-opacity': 0.6 }, s); });
+    el('line', { x1: l, x2: W - r, y1: fy(tgt), y2: fy(tgt), stroke: css('target'), 'stroke-dasharray': '5 4', 'stroke-width': 1.2 }, s);
+    el('text', { x: W - r, y: fy(tgt) - 5, 'text-anchor': 'end' }, s, 'target ' + tgt);
+    for (let i = 0; i < n; i++) {
+      const cx = l + (i + 0.5) * slot;
+      const bv = Math.max(lo, D.sec[key].before[i]), av = Math.max(lo, D.sec[key].after[i]), sv = Math.max(lo, D.sec[key].sim[i]);
+      el('line', { x1: cx, x2: cx, y1: fy(bv), y2: fy(av), stroke: css('after'), 'stroke-opacity': 0.35, 'stroke-width': 3 }, s);
+      el('line', { x1: cx - 9, x2: cx + 9, y1: fy(sv), y2: fy(sv), stroke: css('sim'), 'stroke-width': 2 }, s);
+      el('circle', { cx, cy: fy(bv), r: 4.5, fill: css('panel'), stroke: css('before'), 'stroke-width': 2 }, s);
+      el('circle', { cx, cy: fy(av), r: 4.5, fill: css('after') }, s);
+      if (pi === 1) el('text', { x: cx, y: y0 + panelH + 14, 'text-anchor': 'middle' }, s, st[i]);
+    }
+  });
+  el('text', { x: l, y: H - 2 }, s, 'section start bar (8 bars each)');
+})();
+
+/* 09 stems */
+(function () {
+  const groups = [
+    ['Changed', [['Acid Bass', .615, .818, -.93, -.42, 0, 0, 19.3, 9.1], ['Lead', .048, .378, -2.81, -1.62, 40.9, 2.8, 47.6, 31.1], ['B-Delay (return)', -.02, .722, -3.10, -.68, 49.6, 0, 51.0, 14.5]]],
+    ['Knock-on', [['Synths (group bus)', .067, .349, -2.73, -1.71, 20.9, 10.0, 46.6, 32.5]]],
+    ['Wide, untouched', [['Moody Melody', .091, .092, -2.63, -2.63, 33.1, 33.0, 45.4, 45.4], ['Shaker', .010, .013, -2.97, -2.97, 54.5, 54.7, 49.6, 49.5], ['A-Bright Long Verb (return)', .263, .266, -2.00, -1.99, 25.1, 25.2, 36.9, 36.7], ['Aliens', .325, .323, -1.79, -1.80, 1.5, 1.6, 33.8, 33.9], ['Shimmer Melody', .383, .377, -1.84, -1.81, 3.4, 2.5, 34.5, 34.1], ['High Keys', .512, .512, -1.21, -1.21, 0, 0, 24.4, 24.4], ['Hat Rolls', .594, .594, -1.00, -1.00, 0, 0, 20.6, 20.6], ['Cowbell', .608, .597, -.96, -.99, 0, 0, 19.8, 20.3]]],
+    ['Rhythm and low end', [['Kick', 1.0, 1.0, 0, 0, 0, 0, 0, 0], ['Toms', .976, .975, -.05, -.05, .5, .8, 1.2, 1.2], ['Drums (group bus)', .977, .976, -.05, -.05, .2, .1, 1.1, 1.2], ['22-Analog Lab V', 1.0, 1.0, 0, 0, 0, 0, .1, .1], ['Percs', .713, .712, -.67, -.67, .5, .5, 14.4, 14.4], ['Snare Roll', .754, .754, -.57, -.57, .6, .6, 12.3, 12.3], ['Hats', .821, .814, -.42, -.44, .4, .4, 9.2, 9.7], ['Shaker 2', .937, .936, -.16, -.16, 0, 0, 3.6, 3.6], ['ClosedHH', .999, .999, 0, 0, 0, 0, .1, .1], ['Claps', .997, .997, -.01, -.01, 0, 0, .1, .1]]]];
+  const tb = document.getElementById('stems');
+  const pair = (a, b, f, better) => {
+    const d = b - a, changed = Math.abs(d) > 0.02 * Math.max(1, Math.abs(a));
+    const cls = !changed ? '' : (better(d) ? 'up' : 'dn');
+    return `<span class="b">${f(a)}</span> → <span class="${changed ? 'a ' + cls : 'a'}">${f(b)}</span>`;
+  };
+  const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2), f1 = v => v.toFixed(1) + '%', f0 = v => v.toFixed(0) + '%';
+  for (const [g, rows] of groups) {
+    tb.insertAdjacentHTML('beforeend', `<tr class="grp"><td colspan="5">${g}</td></tr>`);
+    for (const [n, c0, c1, l0, l1, n0, n1, w0, w1] of rows)
+      tb.insertAdjacentHTML('beforeend', `<tr><td>${n}</td><td>${pair(c0, c1, f2, d => d > 0)}</td><td>${pair(l0, l1, f2, d => d > 0)}</td><td>${pair(n0, n1, f1, d => d < 0)}</td><td>${pair(w0, w1, f0, d => d < 0)}</td></tr>`);
+  }
+})();
+</script>
