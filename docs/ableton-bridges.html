@@ -1,0 +1,340 @@
+<title>Ableton Control Bridges</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column styled like a hardware rack — labelled panels, port tags, a signal-flow strip, then a patch-bay table. */
+:root {
+  --bg: #eef0ee;
+  --panel: #ffffff;
+  --panel-2: #f6f7f5;
+  --fg: #1c2121;
+  --muted: #5a6463;
+  --rule: #d3d8d6;
+  --osc: #c46a12;        /* AbletonOSC — amber */
+  --osc-soft: #fbead6;
+  --tcp: #1f7a78;        /* ableton-mcp socket — teal */
+  --tcp-soft: #d7eeec;
+  --cli: #3d4a8f;        /* our CLI — indigo */
+  --cli-soft: #e2e5f6;
+  --warn: #a8321f;
+  --warn-soft: #f8e0da;
+  --yes: #2f7d3a;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141817; --panel: #1d2221; --panel-2: #232928; --fg: #e6eae8; --muted: #9aa5a3; --rule: #343c3a;
+    --osc: #f0a050; --osc-soft: #3b2a17; --tcp: #5cc4c0; --tcp-soft: #163332; --cli: #9aa6f0; --cli-soft: #252a4a;
+    --warn: #f08a72; --warn-soft: #3d1f19; --yes: #7fcf8a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141817; --panel: #1d2221; --panel-2: #232928; --fg: #e6eae8; --muted: #9aa5a3; --rule: #343c3a;
+  --osc: #f0a050; --osc-soft: #3b2a17; --tcp: #5cc4c0; --tcp-soft: #163332; --cli: #9aa6f0; --cli-soft: #252a4a;
+  --warn: #f08a72; --warn-soft: #3d1f19; --yes: #7fcf8a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 400 17px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 44px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 700; letter-spacing: 0.01em; }
+h2 { font-size: 1.9rem; font-weight: 600; }
+h3 { font-size: 1.3rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
+a { color: var(--cli); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--cli); outline-offset: 2px; }
+.eyebrow { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+section { display: grid; gap: 16px; }
+.lede { font-size: 1.15rem; color: var(--muted); }
+
+/* Hero */
+header { display: grid; gap: 14px; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-family: var(--font-mono); font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.tag.osc { color: var(--osc); } .tag.tcp { color: var(--tcp); } .tag.cli { color: var(--cli); }
+
+/* Two device panels */
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.device { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.device-head { padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.device.osc .device-head { background: var(--osc-soft); border-bottom: 3px solid var(--osc); }
+.device.tcp .device-head { background: var(--tcp-soft); border-bottom: 3px solid var(--tcp); }
+.device-head .port { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+dl.specs { margin: 0; padding: 12px 16px 16px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 0.95rem; }
+dl.specs dt { color: var(--muted); font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; padding-top: 3px; }
+dl.specs dd { margin: 0; min-width: 0; }
+
+/* Signal flow */
+.flow { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: grid; gap: 14px; }
+.lane { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px; }
+.node { border-radius: 6px; padding: 10px 12px; font-weight: 600; text-align: center; line-height: 1.25; min-width: 0; }
+.node small { display: block; font-weight: 400; font-size: 0.8rem; color: var(--muted); }
+.node.cli { background: var(--cli-soft); color: var(--fg); border: 1px solid var(--cli); }
+.node.osc { background: var(--osc-soft); border: 1px solid var(--osc); }
+.node.tcp { background: var(--tcp-soft); border: 1px solid var(--tcp); }
+.node.live { background: var(--panel-2); border: 1px solid var(--rule); }
+.node.off { background: transparent; border: 1px dashed var(--warn); color: var(--warn); }
+.wire { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); text-align: center; white-space: nowrap; }
+.wire::after { content: "→"; display: block; font-size: 1.2rem; line-height: 1; color: var(--fg); }
+.flow-note { font-size: 0.92rem; color: var(--muted); }
+@media (max-width: 640px) {
+  .lane { grid-template-columns: 1fr; }
+  .wire::after { content: "↓"; }
+}
+
+/* Patch-bay table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 0.95rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.82rem; color: var(--muted); background: var(--panel-2); position: sticky; top: 0; }
+tbody tr.group th { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.04em; background: var(--panel-2); color: var(--fg); padding-top: 12px; }
+td.mark { white-space: nowrap; font-weight: 600; }
+.y { color: var(--yes); } .p { color: var(--osc); } .n { color: var(--muted); font-weight: 400; }
+td code { font-size: 0.8rem; }
+.via { display: inline-block; font-family: var(--font-mono); font-size: 0.72rem; padding: 1px 6px; border-radius: 3px; margin-right: 6px; }
+.via.osc { background: var(--osc-soft); color: var(--osc); }
+.via.tcp { background: var(--tcp-soft); color: var(--tcp); }
+.via.both { background: var(--cli-soft); color: var(--cli); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--muted); }
+
+/* Callouts */
+.warnbox { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; }
+.warnbox h3 { color: var(--warn); }
+ul.tight { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+ul.tight li { max-width: 70ch; }
+
+/* Plan */
+ol.plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+ol.plan > li { counter-increment: step; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px 16px 64px; position: relative; display: grid; gap: 6px; }
+ol.plan > li::before { content: counter(step); position: absolute; left: 18px; top: 14px; font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; color: var(--cli); }
+.cmds { display: flex; flex-wrap: wrap; gap: 6px; }
+.cmds code { background: var(--cli-soft); border-color: transparent; color: var(--fg); }
+
+/* Slots */
+.slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.slot { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; display: grid; gap: 4px; }
+.slot .n-label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; color: var(--muted); }
+.slot .surface { font-weight: 700; }
+.slot .io { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+
+/* Decision */
+.decision { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.choice { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.choice.rec { border: 2px solid var(--cli); }
+.choice .badge { justify-self: start; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; background: var(--cli); color: var(--panel); padding: 2px 8px; border-radius: 3px; }
+
+footer { font-size: 0.88rem; color: var(--muted); display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 18px; }
+footer ul { margin: 0; padding-left: 1.2em; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Ableton Live 12 · control-surface comparison</span>
+  <h1>Ableton Control Bridges</h1>
+  <p class="lede">Two Remote Scripts let outside programs drive Live: <strong>AbletonOSC</strong> and <strong>ableton-mcp</strong>. This page compares what each can reach and lays out how our command-line tool can use both, without the MCP server's telemetry.</p>
+  <div class="tags">
+    <span class="tag osc">AbletonOSC · OSC/UDP :11000</span>
+    <span class="tag tcp">ableton-mcp Remote Script · TCP :9877</span>
+    <span class="tag cli">our CLI · Go, built with printing-press</span>
+  </div>
+</header>
+
+<section aria-labelledby="glance">
+  <span class="eyebrow">At a glance</span>
+  <h2 id="glance">The two bridges</h2>
+  <div class="panels">
+    <article class="device osc">
+      <div class="device-head"><h3>AbletonOSC</h3><span class="port">UDP 11000 in · 11001 replies</span></div>
+      <dl class="specs">
+        <dt>What it is</dt><dd>A Remote Script that exposes Live's object model as OSC addresses, e.g. <code>/live/song/set/tempo 120</code>.</dd>
+        <dt>Surface</dt><dd>About 260 addresses across song, track, clip, clip slot, device, scene and view.</dd>
+        <dt>Strengths</dt><dd>Mixer, scenes, recording, undo, clip properties, and live listeners that push changes as they happen.</dd>
+        <dt>Gaps</dt><dd>Can't load instruments or effects from the browser, copy clips into the Arrangement, import audio files, or map rack macros.</dd>
+        <dt>Network</dt><dd>Local only. No telemetry.</dd>
+        <dt>License</dt><dd>MIT · <span class="mono">ideoforms/AbletonOSC</span></dd>
+      </dl>
+    </article>
+    <article class="device tcp">
+      <div class="device-head"><h3>ableton-mcp</h3><span class="port">TCP 127.0.0.1:9877 · JSON</span></div>
+      <dl class="specs">
+        <dt>What it is</dt><dd>A Remote Script that accepts JSON commands such as <code>{"type":"set_tempo"}</code>, plus a Python MCP server that wraps them as 37 tools for Claude and Cursor.</dd>
+        <dt>Surface</dt><dd>37 MCP tools; the Remote Script accepts about 40 commands, some of which the MCP server never exposes.</dd>
+        <dt>Strengths</dt><dd>Loads instruments, effects and drum kits from the browser, builds the Arrangement, imports audio files, works with racks.</dd>
+        <dt>Gaps</dt><dd>No mixer setters (volume, pan, mute, solo, sends), scenes, undo or recording.</dd>
+        <dt>Network</dt><dd>The Remote Script is local only. The <em>Python MCP server</em> sends telemetry to Supabase by default.</dd>
+        <dt>License</dt><dd>MIT · <span class="mono">ahujasid/ableton-mcp</span> · 3.3k stars</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="flow">
+  <span class="eyebrow">Signal flow</span>
+  <h2 id="flow">How our CLI would connect</h2>
+  <div class="flow">
+    <div class="lane">
+      <div class="node cli">ableton CLI<small>most commands</small></div>
+      <div class="wire">OSC · UDP 11000</div>
+      <div class="node osc">AbletonOSC<small>Control Surface slot</small></div>
+      <div class="wire">Live API</div>
+      <div class="node live">Ableton Live<small>your set</small></div>
+    </div>
+    <div class="lane">
+      <div class="node cli">ableton CLI<small>browser · arrangement · racks</small></div>
+      <div class="wire">JSON · TCP 9877</div>
+      <div class="node tcp">AbletonMCP script<small>Control Surface slot</small></div>
+      <div class="wire">Live API</div>
+      <div class="node live">Ableton Live<small>your set</small></div>
+    </div>
+    <div class="lane">
+      <div class="node off">Python MCP server<small>not used</small></div>
+      <div class="wire">telemetry</div>
+      <div class="node off">Supabase<small>skipped entirely</small></div>
+      <div></div><div></div>
+    </div>
+    <p class="flow-note">The CLI talks to the Remote Script's socket directly, the same way the MCP server does. The telemetry code lives only in the Python MCP server, so leaving that server out means no usage data and no prompts leave your machine.</p>
+  </div>
+</section>
+
+<section aria-labelledby="matrix">
+  <span class="eyebrow">Capability matrix</span>
+  <h2 id="matrix">Who can do what</h2>
+  <div class="legend">
+    <span><span class="y">✓</span> supported</span>
+    <span><span class="p">◐</span> partial</span>
+    <span><span class="n">—</span> not available</span>
+    <span><span class="via osc">OSC</span><span class="via tcp">TCP</span><span class="via both">either</span> backend our command would use</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Capability</th><th>AbletonOSC</th><th>ableton-mcp</th><th>Our command</th></tr></thead>
+      <tbody>
+        <tr class="group"><th colspan="4">Transport &amp; song</th></tr>
+        <tr><td>Play, stop, tempo</td><td class="mark y">✓</td><td class="mark y">✓</td><td><span class="via osc">OSC</span><code>play</code> <code>stop</code> <code>tempo set 92</code></td></tr>
+        <tr><td>Metronome, loop, time signature</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>song set metronome on</code></td></tr>
+        <tr><td>Undo / redo</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>undo</code> <code>redo</code></td></tr>
+        <tr><td>Recording, session record, capture MIDI</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>record start</code> <code>capture</code></td></tr>
+        <tr><td>Locators (cue points)</td><td class="mark p">◐ <span class="n">at playhead, jump, rename</span></td><td class="mark p">◐ <span class="n">create at a beat</span></td><td><span class="via both">either</span><code>locator add "Drop" --beat 64</code></td></tr>
+
+        <tr class="group"><th colspan="4">Tracks &amp; mixer</th></tr>
+        <tr><td>Create MIDI / audio tracks</td><td class="mark y">✓</td><td class="mark y">✓</td><td><span class="via osc">OSC</span><code>track create midi</code></td></tr>
+        <tr><td>Delete, duplicate tracks</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>track duplicate 2</code></td></tr>
+        <tr><td>Volume, pan, mute, solo, arm, sends</td><td class="mark y">✓</td><td class="mark n">— <span class="n">read only</span></td><td><span class="via osc">OSC</span><code>track volume Bass 0.7</code></td></tr>
+
+        <tr class="group"><th colspan="4">Clips &amp; scenes</th></tr>
+        <tr><td>Fire / stop clips</td><td class="mark y">✓</td><td class="mark y">✓</td><td><span class="via osc">OSC</span><code>clip fire 1 1</code></td></tr>
+        <tr><td>Read, add, remove MIDI notes</td><td class="mark y">✓</td><td class="mark y">✓ <span class="n">add only appends</span></td><td><span class="via osc">OSC</span><code>notes get</code> <code>notes set</code></td></tr>
+        <tr><td>Clip loop, warp, gain, pitch</td><td class="mark y">✓</td><td class="mark n">— <span class="n">read only</span></td><td><span class="via osc">OSC</span><code>clip set loop 0 16</code></td></tr>
+        <tr><td>Scenes: fire, create, duplicate</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>scene fire 3</code></td></tr>
+        <tr><td>Import an audio file as a clip</td><td class="mark n">—</td><td class="mark y">✓ <span class="n">Live 12.0.5+</span></td><td><span class="via tcp">TCP</span><code>clip import-audio kick.wav</code></td></tr>
+
+        <tr class="group"><th colspan="4">Devices &amp; browser</th></tr>
+        <tr><td>Read / set device parameters</td><td class="mark y">✓ <span class="n">by index or name</span></td><td class="mark y">✓ <span class="n">by index</span></td><td><span class="via osc">OSC</span><code>param set Analog "Filter Freq" 0.4</code></td></tr>
+        <tr><td>Browse Live's library</td><td class="mark n">—</td><td class="mark y">✓</td><td><span class="via tcp">TCP</span><code>browser search "808"</code></td></tr>
+        <tr><td>Load an instrument or effect</td><td class="mark n">—</td><td class="mark y">✓</td><td><span class="via tcp">TCP</span><code>device load Bass "Drift"</code></td></tr>
+        <tr><td>Load a drum kit</td><td class="mark n">—</td><td class="mark y">✓</td><td><span class="via tcp">TCP</span><code>drums load 1 "Kit-Core 909"</code></td></tr>
+        <tr><td>Inspect a rack, map Dry/Wet to a macro</td><td class="mark n">—</td><td class="mark p">◐ <span class="n">script only, no MCP tool</span></td><td><span class="via tcp">TCP</span><code>rack inspect</code> <code>rack map-macro</code></td></tr>
+
+        <tr class="group"><th colspan="4">Arrangement</th></tr>
+        <tr><td>List Arrangement clips</td><td class="mark p">◐ <span class="n">names &amp; times</span></td><td class="mark y">✓</td><td><span class="via osc">OSC</span><code>arrangement clips 2</code></td></tr>
+        <tr><td>Copy a Session clip into the Arrangement</td><td class="mark n">—</td><td class="mark y">✓</td><td><span class="via tcp">TCP</span><code>clip to-arrangement 1 1 --beat 32</code></td></tr>
+
+        <tr class="group"><th colspan="4">Watching &amp; state</th></tr>
+        <tr><td>Live listeners (push on change)</td><td class="mark y">✓</td><td class="mark n">—</td><td><span class="via osc">OSC</span><code>watch tempo playing</code></td></tr>
+        <tr><td>Whole-project snapshot in one call</td><td class="mark p">◐ <span class="n">assembled from many calls</span></td><td class="mark y">✓</td><td><span class="via tcp">TCP</span><code>snapshot save</code> <code>snapshot diff</code></td></tr>
+        <tr><td>Script version handshake</td><td class="mark y">✓ <span class="n">/live/test</span></td><td class="mark y">✓</td><td><span class="via both">either</span><code>doctor</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="concerns">
+  <span class="eyebrow">Read before installing</span>
+  <h2 id="concerns">What to watch out for in ableton-mcp</h2>
+  <div class="warnbox">
+    <h3>Telemetry and data collection live in the Python MCP server</h3>
+    <ul class="tight">
+      <li><strong>Anonymous telemetry is on by default.</strong> It sends an install ID, which tools ran, whether they succeeded and how long they took to Supabase. Turn it off with <code>ABLETON_MCP_DISABLE_TELEMETRY=true</code>.</li>
+      <li><strong>Dataset recording is opt-in.</strong> When enabled it uploads prompts, MIDI notes, track and clip names and device settings, which may be published in an open training dataset.</li>
+      <li><strong>Every tool takes a <code>user_prompt</code> argument.</strong> The assistant is asked to pass your original request into each call so it can be recorded.</li>
+      <li><strong>Six tools exist only for that dataset:</strong> <code>set_dataset_consent</code>, <code>submit_intent</code>, <code>rate_last_action</code>, <code>prefer_candidate</code>, <code>reject_last_action</code>, <code>record_audition</code>.</li>
+      <li><strong>The Remote Script itself makes no internet connections.</strong> It listens on 127.0.0.1 only. Anything on your machine that reaches port 9877 can control Live, including importing files by path, so keep it on localhost.</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="plan">
+  <span class="eyebrow">Integration plan</span>
+  <h2 id="plan">What we build into our CLI</h2>
+  <ol class="plan">
+    <li><h3>A backend router</h3><p>Every command declares the backend it needs. OSC handles the everyday surface; the TCP socket handles the browser, Arrangement, audio import and racks. If a script isn't loaded, the command says which one and how to enable it.</p></li>
+    <li><h3>Browser and device loading</h3><p>The biggest gap in AbletonOSC, filled from the ableton-mcp script.</p><div class="cmds"><code>browser tree</code><code>browser search</code><code>device load</code><code>drums load</code></div></li>
+    <li><h3>Arrangement building</h3><p>Copy Session clips onto the timeline at a beat and drop named locators, so a song structure can be laid out from a script.</p><div class="cmds"><code>clip to-arrangement</code><code>locator add</code><code>arrangement clips</code></div></li>
+    <li><h3>Rack macros</h3><p>Expose the two commands the MCP server leaves hidden: list a rack's nested devices, and map every nested Dry/Wet to Macro 1.</p><div class="cmds"><code>rack inspect</code><code>rack map-macro</code></div></li>
+    <li><h3>Snapshot and diff</h3><p>Save the whole project state to JSON before a batch of changes, then diff it afterwards to see exactly what moved. Useful before letting an agent loose on a set.</p><div class="cmds"><code>snapshot save</code><code>snapshot diff before.json</code></div></li>
+    <li><h3>A safe <code>notes set</code></h3><p>ableton-mcp's note writes only append. Replacing a clip's notes means reading them first, clearing, then writing, with the old notes kept so the change can be reverted.</p><div class="cmds"><code>notes set --from notes.json</code><code>notes restore</code></div></li>
+    <li><h3><code>doctor</code></h3><p>Checks that both scripts answer, that their versions are ones the CLI knows, and that the MiniLab_3 slot is untouched.</p></li>
+    <li><h3>Left out on purpose</h3><p>The six dataset tools and the <code>user_prompt</code> argument. Nothing in the CLI sends data off your machine.</p></li>
+  </ol>
+</section>
+
+<section aria-labelledby="setup">
+  <span class="eyebrow">Live setup</span>
+  <h2 id="setup">Control Surface slots in Settings → Link, Tempo &amp; MIDI</h2>
+  <div class="slots">
+    <div class="slot"><span class="n-label">Slot 1</span><span class="surface">MiniLab_3</span><span class="io">In/Out: Minilab3 MIDI</span><span class="n">Your keyboard, unchanged</span></div>
+    <div class="slot"><span class="n-label">Slot 2</span><span class="surface">AbletonOSC</span><span class="io">In/Out: None</span><span class="n">Most CLI commands</span></div>
+    <div class="slot"><span class="n-label">Slot 3</span><span class="surface">AbletonMCP</span><span class="io">In/Out: None</span><span class="n">Browser, Arrangement, racks</span></div>
+  </div>
+  <p>Both scripts go in <code>Documents\Ableton\User Library\Remote Scripts</code>. The ableton-mcp script can be copied straight from its repository; its Python MCP server doesn't need to be installed at all.</p>
+</section>
+
+<section aria-labelledby="decision">
+  <span class="eyebrow">Open decision</span>
+  <h2 id="decision">One backend or two?</h2>
+  <div class="decision">
+    <div class="choice rec">
+      <span class="badge">Recommended</span>
+      <h3>Both backends</h3>
+      <ul class="tight">
+        <li>Covers everything in the matrix above.</li>
+        <li>Load instruments, effects and kits from the command line.</li>
+        <li>Two Remote Scripts to install and keep updated.</li>
+        <li>Uses two Control Surface slots.</li>
+      </ul>
+    </div>
+    <div class="choice">
+      <h3>AbletonOSC only</h3>
+      <ul class="tight">
+        <li>One script, one slot, a simpler setup.</li>
+        <li>Full mixer, scene, recording and listener control.</li>
+        <li>No loading instruments or effects from the browser.</li>
+        <li>No Arrangement building or audio import.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>Compiled 31 October 2026 from the source of both projects.</span>
+  <ul>
+    <li><a href="https://github.com/ahujasid/ableton-mcp">github.com/ahujasid/ableton-mcp</a>: <span class="mono">MCP_Server/server.py</span>, <span class="mono">AbletonMCP_Remote_Script/__init__.py</span>, README and TERMS</li>
+    <li><a href="https://github.com/ideoforms/AbletonOSC">github.com/ideoforms/AbletonOSC</a>: README address list</li>
+  </ul>
+</footer>
+
+</div>

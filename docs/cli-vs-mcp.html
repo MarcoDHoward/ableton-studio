@@ -1,0 +1,287 @@
+<title>Ableton CLI vs MCP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; two parallel signal lanes, then a step-through of one real request, then a patch-bay comparison table. Same rack visual family as "Ableton Control Bridges". */
+:root {
+  --bg: #eef0ee;
+  --panel: #ffffff;
+  --panel-2: #f6f7f5;
+  --fg: #1c2121;
+  --muted: #5a6463;
+  --rule: #d3d8d6;
+  --mcp: #8a4fb3;        /* MCP path: violet */
+  --mcp-soft: #efe4f7;
+  --cli: #3d4a8f;        /* our CLI: indigo */
+  --cli-soft: #e2e5f6;
+  --osc: #c46a12;
+  --osc-soft: #fbead6;
+  --tcp: #1f7a78;
+  --tcp-soft: #d7eeec;
+  --warn: #a8321f;
+  --warn-soft: #f8e0da;
+  --ok: #2f7d3a;
+  --ok-soft: #dff0e1;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141817; --panel: #1d2221; --panel-2: #232928; --fg: #e6eae8; --muted: #9aa5a3; --rule: #343c3a;
+    --mcp: #c79be6; --mcp-soft: #2f2240; --cli: #9aa6f0; --cli-soft: #252a4a;
+    --osc: #f0a050; --osc-soft: #3b2a17; --tcp: #5cc4c0; --tcp-soft: #163332;
+    --warn: #f08a72; --warn-soft: #3d1f19; --ok: #7fcf8a; --ok-soft: #1c3320; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141817; --panel: #1d2221; --panel-2: #232928; --fg: #e6eae8; --muted: #9aa5a3; --rule: #343c3a;
+  --mcp: #c79be6; --mcp-soft: #2f2240; --cli: #9aa6f0; --cli-soft: #252a4a;
+  --osc: #f0a050; --osc-soft: #3b2a17; --tcp: #5cc4c0; --tcp-soft: #163332;
+  --warn: #f08a72; --warn-soft: #3d1f19; --ok: #7fcf8a; --ok-soft: #1c3320; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 400 17px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 44px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 700; }
+h2 { font-size: 1.9rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.85em; }
+code { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
+a { color: var(--cli); }
+:focus-visible { outline: 2px solid var(--cli); outline-offset: 2px; }
+.eyebrow { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+section { display: grid; gap: 16px; }
+.lede { font-size: 1.15rem; color: var(--muted); }
+header { display: grid; gap: 14px; }
+
+/* Lanes */
+.lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.lane { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.lane-head { padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.lane.mcp .lane-head { background: var(--mcp-soft); border-bottom: 3px solid var(--mcp); }
+.lane.cli .lane-head { background: var(--cli-soft); border-bottom: 3px solid var(--cli); }
+.lane-head .sub { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+.chain { list-style: none; margin: 0; padding: 16px; display: grid; gap: 0; }
+.hop { display: grid; gap: 2px; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--panel-2); }
+.hop strong { font-weight: 700; }
+.hop small { color: var(--muted); font-size: 0.86rem; }
+.hop.tone-mcp { border-color: var(--mcp); background: var(--mcp-soft); }
+.hop.tone-cli { border-color: var(--cli); background: var(--cli-soft); }
+.hop.tone-osc { border-color: var(--osc); background: var(--osc-soft); }
+.hop.tone-tcp { border-color: var(--tcp); background: var(--tcp-soft); }
+.hop.tone-live { background: var(--panel); }
+.wire { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); padding: 4px 0 4px 18px; position: relative; }
+.wire::before { content: "↓"; position: absolute; left: 4px; top: 2px; color: var(--fg); }
+.sidecar { margin-top: 6px; border: 1px dashed var(--warn); color: var(--warn); border-radius: 6px; padding: 6px 10px; font-size: 0.86rem; }
+.sidecar.ok { border-color: var(--ok); color: var(--ok); }
+.fanout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fanout .hop { padding: 8px; }
+@media (max-width: 420px) { .fanout { grid-template-columns: 1fr; } }
+
+/* Step-through */
+.stepper { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; display: grid; gap: 14px; }
+.request { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; width: fit-content; }
+.seg button { font: 600 0.95rem var(--font-body); padding: 7px 14px; background: var(--panel-2); color: var(--fg); border: 0; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--cli); color: var(--panel); }
+.seg button[data-path="mcp"][aria-pressed="true"] { background: var(--mcp); }
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+ol.steps > li::before { content: counter(s); font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; color: var(--muted); line-height: 1.2; }
+.step-body { display: grid; gap: 6px; min-width: 0; }
+pre { margin: 0; background: var(--panel-2); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; font: 400 0.8rem/1.5 var(--font-mono); overflow-x: auto; white-space: pre; }
+.who { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; color: var(--muted); }
+.verdict { border-radius: 6px; padding: 10px 12px; font-size: 0.95rem; }
+.verdict.bad { background: var(--warn-soft); color: var(--fg); border-left: 4px solid var(--warn); }
+.verdict.good { background: var(--ok-soft); color: var(--fg); border-left: 4px solid var(--ok); }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.82rem; color: var(--muted); background: var(--panel-2); }
+tbody th { font-weight: 600; width: 22%; }
+td.mcp { border-left: 3px solid var(--mcp); }
+td.cli { border-left: 3px solid var(--cli); }
+
+.fit { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.fit > div { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+ul.tight { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+footer { font-size: 0.88rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 18px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .seg button { transition: background 0.15s; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">How Claude reaches Ableton Live</span>
+  <h1>Ableton CLI vs MCP</h1>
+  <p class="lede">Both let Claude change your Live set. They differ in what sits between Claude and Live, how much Claude has to carry around to use it, whether you can undo just Claude's changes, and what can leave your computer.</p>
+</header>
+
+<section aria-labelledby="paths">
+  <span class="eyebrow">Signal path</span>
+  <h2 id="paths">The two routes</h2>
+  <div class="lanes">
+    <article class="lane mcp">
+      <div class="lane-head"><h3>MCP server (ahujasid/ableton-mcp)</h3><span class="sub">tools over JSON-RPC</span></div>
+      <ol class="chain">
+        <li class="hop"><strong>You</strong><small>"mute the drums and pull the bass down 3 dB"</small></li>
+        <li class="wire">your prompt</li>
+        <li class="hop tone-mcp"><strong>Claude (Desktop or Code)</strong><small>All 37 tool descriptions are loaded into Claude's context when the session starts, whether you use them or not.</small></li>
+        <li class="wire">tool call + <span class="mono">user_prompt</span> (your words, copied into every call)</li>
+        <li class="hop tone-mcp"><strong>Python MCP server</strong><small>Always running alongside the AI app. Translates tool calls into socket commands.</small>
+          <div class="sidecar">Telemetry and dataset modules live here. PyPI builds 1.2.0–1.3.5 uploaded prompts, track names and MIDI to the author's Supabase with no consent prompt.</div>
+        </li>
+        <li class="wire">JSON over TCP 127.0.0.1:9877</li>
+        <li class="hop tone-tcp"><strong>AbletonMCP Remote Script</strong><small>Inside Live. No mixer setters: it can't mute a track or change its volume.</small></li>
+        <li class="wire">Live API</li>
+        <li class="hop tone-live"><strong>Ableton Live</strong><small>your set</small></li>
+      </ol>
+    </article>
+
+    <article class="lane cli">
+      <div class="lane-head"><h3>Our CLI (ableton-pp-cli)</h3><span class="sub">commands in a terminal</span></div>
+      <ol class="chain">
+        <li class="hop"><strong>You</strong><small>"mute the drums and pull the bass down 3 dB"</small></li>
+        <li class="wire">your prompt stays with Claude</li>
+        <li class="hop tone-cli"><strong>Claude Code</strong><small>Knows the CLI exists from a short skill file and reads <code>--help</code> only for the commands it needs.</small></li>
+        <li class="wire">one shell command per step</li>
+        <li class="hop tone-cli"><strong>ableton-pp-cli.exe</strong><small>Starts, does one job, exits. Looks up "Drums" and "Bass" by name, checks ranges, records old and new values in a local journal.</small>
+          <div class="sidecar ok">Talks only to 127.0.0.1. No telemetry, no prompt text, nothing sent to the internet.</div>
+        </li>
+        <li class="wire">picks the right script for each command</li>
+        <li class="fanout">
+          <div class="hop tone-osc"><strong>AbletonOSC</strong><small>UDP 11000: mixer, clips, notes, scenes, devices</small></div>
+          <div class="hop tone-tcp"><strong>AbletonMCP script</strong><small>TCP 9877: browser, Arrangement, racks</small></div>
+          <div class="hop tone-cli"><strong>AbletonPPExtras</strong><small>TCP 9878: ours, written from scratch</small></div>
+        </li>
+        <li class="wire">Live API</li>
+        <li class="hop tone-live"><strong>Ableton Live</strong><small>your set</small></li>
+      </ol>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="walk">
+  <span class="eyebrow">Step through one request</span>
+  <h2 id="walk">"Mute the drums and pull the bass down 3 dB"</h2>
+  <div class="stepper">
+    <div class="seg" role="group" aria-label="Choose a route">
+      <button type="button" id="btn-cli" data-path="cli" aria-pressed="true">Our CLI</button>
+      <button type="button" id="btn-mcp" data-path="mcp" aria-pressed="false">MCP server</button>
+    </div>
+
+    <div id="path-cli">
+      <ol class="steps">
+        <li><div class="step-body"><span class="who">Claude runs</span>
+<pre>ableton-pp-cli tracks --agent --select name,mute,volume_db</pre>
+          <span class="who">and gets back only what it asked for</span>
+<pre>[{"name":"Drums","mute":false,"volume_db":-4.0},
+ {"name":"Bass","mute":false,"volume_db":-6.0}, ...]</pre></div></li>
+        <li><div class="step-body"><span class="who">Claude runs</span>
+<pre>ableton-pp-cli track mute Drums --on</pre>
+<pre>{"target":"Drums","property":"mute","before":"false","after":"true","journal_id":41}</pre></div></li>
+        <li><div class="step-body"><span class="who">Claude runs</span>
+<pre>ableton-pp-cli track volume Bass --db -9</pre>
+<pre>{"target":"Bass","property":"volume","before":"-6.0 dB","after":"-9.0 dB","journal_id":42}</pre></div></li>
+        <li><div class="step-body"><span class="who">You don't like it</span>
+<pre>ableton-pp-cli journal revert --last 2</pre>
+          <p>Puts Drums and Bass back exactly as they were, without touching anything you changed by hand in Live.</p></div></li>
+      </ol>
+      <div class="verdict good">Four short commands. Claude reports the exact before and after values, and you can run the same commands yourself in a terminal.</div>
+    </div>
+
+    <div id="path-mcp" hidden>
+      <ol class="steps">
+        <li><div class="step-body"><span class="who">Claude calls</span>
+<pre>get_session_info(user_prompt="mute the drums and pull the bass down 3 dB")</pre>
+          <p>Your request is copied into the tool call. The server's telemetry and dataset code can record it.</p></div></li>
+        <li><div class="step-body"><span class="who">Claude looks for a mute or volume tool</span>
+<pre>no set_track_mute, no set_track_volume among the 37 tools</pre></div></li>
+        <li><div class="step-body"><span class="who">Claude answers</span>
+<pre>"I can't change mute or volume with these tools.
+ Please mute Drums and lower Bass by 3 dB in Live."</pre></div></li>
+      </ol>
+      <div class="verdict bad">The request can't be done: ahujasid's server has no mixer setters. Even where an MCP tool exists, the only undo is Live's own, which mixes Claude's edits with yours.</div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="compare">
+  <span class="eyebrow">Side by side</span>
+  <h2 id="compare">What changes for you</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Question</th><th>MCP server</th><th>Our CLI</th></tr></thead>
+      <tbody>
+        <tr><th>How does Claude learn the tools?</th><td class="mcp">Every tool description is loaded into Claude's context at the start of each session.</td><td class="cli">A short skill file says the CLI exists; Claude reads <code>--help</code> for a command only when it needs it.</td></tr>
+        <tr><th>What does Claude get back?</th><td class="mcp">Whatever each tool returns, often the full object.</td><td class="cli">JSON trimmed with <code>--select</code> and <code>--compact</code>, so long sets don't flood the conversation.</td></tr>
+        <tr><th>Does it see my prompt?</th><td class="mcp">Yes. Every tool asks Claude to pass your original prompt.</td><td class="cli">No. It only sees the command, like <code>track mute Drums --on</code>.</td></tr>
+        <tr><th>What leaves my computer?</th><td class="mcp">Depends on the build: telemetry code is present and older builds uploaded prompts, names and MIDI.</td><td class="cli">Nothing. It only talks to 127.0.0.1 ports 11000, 9877 and 9878.</td></tr>
+        <tr><th>Can I undo just Claude's changes?</th><td class="mcp">Only Live's undo, which also undoes your own edits.</td><td class="cli"><code>journal revert</code> for single changes, <code>notes restore</code> for overwritten clips, <code>snapshot diff</code> to see everything that moved.</td></tr>
+        <tr><th>Can I use it without an AI?</th><td class="mcp">Not practically; it's built for AI apps.</td><td class="cli">Yes. Type commands, put them in a .bat file, or schedule them.</td></tr>
+        <tr><th>Can I test before changing anything?</th><td class="mcp">No preview mode.</td><td class="cli"><code>--dry-run</code> on every change shows exactly what would be sent.</td></tr>
+        <tr><th>What runs in the background?</th><td class="mcp">A Python server process for as long as the AI app is open.</td><td class="cli">Nothing. Each command starts, finishes and exits.</td></tr>
+        <tr><th>Which AI apps can use it?</th><td class="mcp">Any app that speaks MCP, including Claude Desktop.</td><td class="cli">Anything that can run a shell command. It can also serve the same commands over MCP if you ever need it.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="fit">
+  <span class="eyebrow">Fair to both</span>
+  <h2 id="fit">When each one is the better fit</h2>
+  <div class="fit">
+    <div>
+      <h3>MCP makes sense when</h3>
+      <ul class="tight">
+        <li>The AI app has no terminal, like Claude Desktop's chat.</li>
+        <li>You want tools to show up as buttons and permission prompts in the app.</li>
+        <li>You trust the server's code and its data handling.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>The CLI makes sense when</h3>
+      <ul class="tight">
+        <li>You work in Claude Code or any terminal.</li>
+        <li>You want the same commands for yourself, scripts and Claude.</li>
+        <li>You want to see and undo exactly what Claude changed.</li>
+        <li>Nothing about your sessions should leave the machine.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>The CLI is still being built. Commands shown use its planned shape; flag names may shift slightly before release.</span>
+  <span>MCP facts come from reading ahujasid/ableton-mcp's source and its PyPI release history (audit, 31 October 2026).</span>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll('.seg button');
+  var panels = { cli: document.getElementById('path-cli'), mcp: document.getElementById('path-mcp') };
+  function show(path) {
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.path === path)); });
+    panels.cli.hidden = path !== 'cli';
+    panels.mcp.hidden = path !== 'mcp';
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.path); }); });
+})();
+</script>
